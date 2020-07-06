@@ -1,0 +1,10 @@
+<launch>
+  <node name="adjust_hz" pkg="tensorflow" type="adjust_hz">
+    <param name="hz" value="5"/>
+  </node>
+  <node name="tensorflow" pkg="tensorflow" type="junction_recognition_tensorflow.py" output="screen" >
+    <param name="model_full_path" value="~/catkin_tensorflow_ws/src/tensorflow/model/NN.h5"/>
+  </node>
+
+
+</launch>
