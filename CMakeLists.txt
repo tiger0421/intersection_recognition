@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -206,7 +207,18 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(adjust_hz src/adjust_hz.cpp)
-target_link_libraries(adjust_hz
+add_executable(adjust_hz
+    src/adjust_hz.cpp
+)
+target_link_libraries(
+  adjust_hz
+  ${catkin_LIBRARIES}
+)
+
+add_executable(cmd_vel_controller
+    src/cmd_vel_controller.cpp
+)
+target_link_libraries(
+  cmd_vel_controller
   ${catkin_LIBRARIES}
 )
