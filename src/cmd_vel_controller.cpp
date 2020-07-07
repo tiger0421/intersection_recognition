@@ -5,6 +5,7 @@
 #include "geometry_msgs/Twist.h"
 #include "sensor_msgs/Imu.h"
 #include <unistd.h>
+#include <cmath>
 #include <vector>
 
 class Variables {
@@ -67,7 +68,7 @@ void Variables::hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis)
 }
 
 void Variables::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
-    rotate_rad_ += imu_data->angular_velocity.z;
+    rotate_rad_ += std::abs(imu_data->angular_velocity.z);
     if(rotate_rad_ >= 3.14/2){
         turn_flg_->data = false;
         turn_flg_pub_.publish(*turn_flg_);
@@ -79,7 +80,7 @@ void Variables::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
     }
     else{
 // may inverse angular.z
-        if(target_action_[cnt_] == "left") vel_->angular.z = 1;
+        if(target_action_[cnt_-1] == "left") vel_->angular.z = 1;
         else vel_->angular.z = -1;
     }
 
