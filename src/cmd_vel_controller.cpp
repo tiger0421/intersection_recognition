@@ -12,6 +12,7 @@ class Variables {
         Variables();
         std_msgs::Bool* turn_flg_;
         geometry_msgs::Twist* vel_;
+        float rotate_rad_ = 0;
         void hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis);
         void moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data);
 
@@ -21,8 +22,10 @@ class Variables {
         ros::Publisher turn_flg_pub_;
         ros::Subscriber hypothesis_sub_;
         ros::Subscriber imu_sub_;
-        std::vector<std::string> target_node_;
+        std::vector<std::string> target_condition_;
+        std::vector<std::string> target_action_;
         int cnt_ = 0;
+        int buff_ = 0;
 };
 
 Variables::Variables(){
@@ -32,25 +35,29 @@ Variables::Variables(){
     hypothesis_sub_ = node_.subscribe<std_msgs::String> ("/hypothesis", 1, &Variables::hypothesisCallback, this);
     imu_sub_ = node_.subscribe<sensor_msgs::Imu> ("/imu_data", 1, &Variables::moveCallback, this);
 
-    target_node_.push_back("threeway_center");
-    target_node_.push_back("threeway_left");
+    target_condition_.push_back("threeway_center");
+    target_condition_.push_back("threeway_left");
 }
 
 void Variables::hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis){
     if(!turn_flg_->data){
-        if(! (hypothesis->data == target_node_[cnt_])){
+        if(! (hypothesis->data == target_condition_[cnt_])){
             ROS_INFO("different between h and target");
         }
         else{
-            cnt_++;
-            if(cnt_ >= 2){
-                cnt_ = 0;
-                if(hypothesis->data == target_node_.back()){
+            buff_++;
+            if(buff_ >= 3){
+                ROS_INFO("robot reaches target_node!!");
+                buff_ = 0;
+                cnt_++;
+                if(hypothesis->data == target_condition_.back()){
 // may need cmd_vel = 0.0
+                    ROS_INFO("robot gets a goal");
                     hypothesis_sub_.shutdown();
                     ros::shutdown();
                 }
                 else{
+                    ROS_INFO("start turning");
                     turn_flg_->data = true;
                     turn_flg_pub_.publish(*turn_flg_);
                 }
@@ -60,10 +67,22 @@ void Variables::hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis)
 }
 
 void Variables::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
+    rotate_rad_ += imu_data->angular_velocity.z;
+    if(rotate_rad_ >= 3.14/2){
+        turn_flg_->data = false;
+        turn_flg_pub_.publish(*turn_flg_);
+        rotate_rad_ = 0;
+    }
+
     if(! turn_flg_->data){
         vel_->linear.x = 1;
     }
-    
+    else{
+// may inverse angular.z
+        if(target_action_[cnt_] == "left") vel_->angular.z = 1;
+        else vel_->angular.z = -1;
+    }
+
     cmd_vel_pub_.publish(*vel_);
     vel_->linear.x = 0;
     vel_->angular.z = 0;
