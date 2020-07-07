@@ -36,9 +36,10 @@ int main(int argc, char** argv){
     int hz = 1;
     hz = filter.get_ros_param();
     ros::Rate loop_rate(hz);
-    loop_rate.sleep();
-
-    ros::spin();
+    while(ros::ok()){
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
 
     return 0;
 }

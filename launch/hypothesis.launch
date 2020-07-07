@@ -1,6 +1,6 @@
 <launch>
-  <node name="adjust_hz" pkg="ros_junction_recognition" type="adjust_hz" output="screen">
-    <param name="scan_hz" value="5"/>
+  <node name="adjust_hz" pkg="ros_junction_recognition" type="adjust_hz" output="screen" >
+    <param name="scan_hz" value="1"/>
   </node>
   <node name="tensorflow" pkg="ros_junction_recognition" type="junction_recognition_tensorflow.py" output="screen" >
     <param name="model_full_path" value="/home/sima/ros_ws/catkin_junction_recognition_ws/src/ros_junction_recognition/model/NN.h5"/>
