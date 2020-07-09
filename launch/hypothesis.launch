@@ -3,7 +3,7 @@
     <param name="scan_hz" value="1"/>
   </node>
   <node name="tensorflow" pkg="ros_junction_recognition" type="junction_recognition_tensorflow.py" output="screen" >
-    <param name="model_full_path" value="/home/sima/ros_ws/catkin_junction_recognition_ws/src/ros_junction_recognition/model/NN.h5"/>
+    <param name="model_full_path" value="/home/docker/catkin_ws/src/ros_junction_recognition/model/NN.h5"/>
   </node>
   <node name="cmd_vel_controller" pkg="ros_junction_recognition" type="cmd_vel_controller" output="screen" >
   </node>
