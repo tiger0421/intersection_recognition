@@ -1,4 +1,4 @@
-FROM tiger0421/ros-tensorflow-gpu:gpu
+FROM tiger0421/ros-tensorflow-gpu:latest
 
 ARG DOCKER_USER=docker
 
