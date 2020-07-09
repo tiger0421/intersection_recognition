@@ -1,7 +1,7 @@
 FROM tiger0421/ros-tensorflow-cpu:latest
 
 # create user
-ARG DOCKER_USER=docker_user
+ARG DOCKER_USER=docker
 
 # clone repo
 WORKDIR /home/${DOCKER_USER}/catkin_ws/src
