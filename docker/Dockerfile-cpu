@@ -1,0 +1,52 @@
+FROM ros:melodic
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN sed -i 's#http://tw.archive.ubuntu.com/#http://archive.ubuntu.com/#' /etc/apt/sources.list && \
+    apt update && \
+    apt install -y \
+        dpkg \
+        software-properties-common \
+        git \
+        curl \
+        wget \
+        lsb-release \
+        python3-argcomplete \
+        gnupg2 \
+        dirmngr \
+        g++ \
+        fluid \
+        build-essential \
+        vim \
+        tmux \
+        python-catkin-tools \
+        python-rosdep \
+        python-rosinstall-generator \
+        python-wstool \
+        python-rosinstall \
+    && \
+    apt upgrade -y && \
+    apt autoremove -y && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/*
+RUN curl -kL https://bootstrap.pypa.io/get-pip.py | python
+RUN pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow_cpu-2.1.0-cp27-cp27mu-manylinux2010_x86_64.whl
+
+# create user
+ARG DOCKER_UID=1000
+ARG DOCKER_USER=docker_user
+ARG DOCKER_PASSWORD=ubuntu
+RUN useradd -m --uid ${DOCKER_UID} --groups sudo ${DOCKER_USER} \
+  && echo ${DOCKER_USER}:${DOCKER_PASSWORD} | chpasswd
+
+# clone repo
+WORKDIR /home/${DOCKER_USER}/catkin_ws/src
+RUN chown -R ${DOCKER_USER}:${DOCKER_USER} /home/${DOCKER_USER}/catkin_ws
+COPY docker-entrypoint.sh /tmp
+RUN chmod 777 /tmp/docker-entrypoint.sh
+USER ${DOCKER_USER}
+ENTRYPOINT ["/tmp/docker-entrypoint.sh"]
+echo source /home/${DOCKER_USER}/catin_ws/devel/setup.bash >> /home/${DOCKER_USER}/.bashrc
+
+CMD ["/bin/bash"]
+
+WORKDIR /home/${DOCKER_USER}
