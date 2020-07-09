@@ -2,6 +2,7 @@ FROM tiger0421/ros-tensorflow-gpu:gpu
 
 ARG DOCKER_USER=docker
 
+USER root
 WORKDIR /home/${DOCKER_USER}/catkin_ws/src
 RUN chown -R ${DOCKER_USER}:${DOCKER_USER} /home/${DOCKER_USER}/catkin_ws
 COPY docker/docker-entrypoint.sh /tmp
