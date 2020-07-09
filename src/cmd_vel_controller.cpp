@@ -36,14 +36,18 @@ Variables::Variables(){
     hypothesis_sub_ = node_.subscribe<std_msgs::String> ("/hypothesis", 1, &Variables::hypothesisCallback, this);
     imu_sub_ = node_.subscribe<sensor_msgs::Imu> ("/imu_data", 1, &Variables::moveCallback, this);
 
-    target_condition_.push_back("threeway_center");
     target_condition_.push_back("threeway_left");
+    target_condition_.push_back("threeway_center");
+    target_action_.push_back("left");
+    target_action_.push_back("left");
+
+    ROS_INFO("fin init");
 }
 
 void Variables::hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis){
     if(!turn_flg_->data){
-        if(! (hypothesis->data == target_condition_[cnt_])){
-            ROS_INFO("different between h and target");
+        if(! (hypothesis->data.c_str() == target_condition_[cnt_])){
+            ROS_INFO("different between hypothesis(%s) and target(%s)", hypothesis->data.c_str(), target_condition_[cnt_].c_str());
         }
         else{
             buff_++;
@@ -51,7 +55,7 @@ void Variables::hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis)
                 ROS_INFO("robot reaches target_node!!");
                 buff_ = 0;
                 cnt_++;
-                if(hypothesis->data == target_condition_.back()){
+                if(cnt_ == target_condition_.size()){
 // may need cmd_vel = 0.0
                     ROS_INFO("robot gets a goal");
                     hypothesis_sub_.shutdown();
@@ -68,20 +72,29 @@ void Variables::hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis)
 }
 
 void Variables::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
-    rotate_rad_ += std::abs(imu_data->angular_velocity.z);
-    if(rotate_rad_ >= 3.14/2){
-        turn_flg_->data = false;
-        turn_flg_pub_.publish(*turn_flg_);
-        rotate_rad_ = 0;
+    ROS_INFO("IMU received");
+    if(turn_flg_){
+        rotate_rad_ += std::abs(imu_data->angular_velocity.z);
+    
+        if(rotate_rad_ >= 3.14/2){
+            turn_flg_->data = false;
+            turn_flg_pub_.publish(*turn_flg_);
+            rotate_rad_ = 0;
+        }
     }
 
+// If turn_flg is True, make a robot go straight, if not, turn right or left.
     if(! turn_flg_->data){
         vel_->linear.x = 1;
     }
     else{
 // may inverse angular.z
-        if(target_action_[cnt_-1] == "left") vel_->angular.z = 1;
-        else vel_->angular.z = -1;
+        if(target_action_[cnt_-1] == "left"){
+            vel_->angular.z = 1;
+        }
+        else{
+            vel_->angular.z = -1;
+        }
     }
 
     cmd_vel_pub_.publish(*vel_);
