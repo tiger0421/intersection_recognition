@@ -41,7 +41,7 @@ RUN useradd -m --uid ${DOCKER_UID} --groups sudo ${DOCKER_USER} \
 # clone repo
 WORKDIR /home/${DOCKER_USER}/catkin_ws/src
 RUN chown -R ${DOCKER_USER}:${DOCKER_USER} /home/${DOCKER_USER}/catkin_ws
-COPY docker-entrypoint.sh /tmp
+COPY docker/docker-entrypoint.sh /tmp
 RUN chmod 777 /tmp/docker-entrypoint.sh
 USER ${DOCKER_USER}
 ENTRYPOINT ["/tmp/docker-entrypoint.sh"]
