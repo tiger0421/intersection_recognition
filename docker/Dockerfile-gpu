@@ -1,4 +1,4 @@
-FROM tiger0421/ros-gpu-gazebo:ros-tensorflow-gpu
+FROM tiger0421/ros-tensorflow-gpu:melodic
 
 ARG DOCKER_USER=docker
 
