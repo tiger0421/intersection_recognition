@@ -4,6 +4,7 @@ FROM tiger0421/ros-tensorflow-cpu:latest
 ARG DOCKER_USER=docker
 
 # clone repo
+USER root
 WORKDIR /home/${DOCKER_USER}/catkin_ws/src
 RUN chown -R ${DOCKER_USER}:${DOCKER_USER} /home/${DOCKER_USER}/catkin_ws
 COPY docker/docker-entrypoint.sh /tmp
