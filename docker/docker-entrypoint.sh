@@ -3,6 +3,7 @@
 # create workspace
 source /opt/ros/melodic/setup.bash
 
+cd ~/catkin_ws/src
 catkin_init_workspace
 cd ~/catkin_ws
 catkin build
