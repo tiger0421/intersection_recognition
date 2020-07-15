@@ -21,6 +21,7 @@ class Variables:
 
         self.TRAIN_DATA_FILES = ['dead_end', 'left', 'right', 'straight', 'threeway_left', 'threeway_center', 'threeway_right']
         NUM_CLASSES = len(self.TRAIN_DATA_FILES)
+        self.MAX_LASER_DISTANCE = 30.0
 
         rosparam.set_param("model_full_path", "/home/sima/catkin_tensorflow_ws/src/tensorflow/model/NN.h5")
         model_full_path = rosparam.get_param("tensorflow/model_full_path")
@@ -32,7 +33,7 @@ class Variables:
         start = time.time()
         input_pointclouds = np.array(data.ranges, dtype=np.float32)
 
-        self.h_idx = np.array(variables.model.predict(input_pointclouds.reshape(1, len(input_pointclouds))))
+        self.h_idx = np.array(variables.model.predict(input_pointclouds.reshape(1, len(input_pointclouds)))) / self.MAX_LASER_DISTANCE
         hypothesis = variables.TRAIN_DATA_FILES[np.argmax(self.h_idx)]
         self.publisher.publish(hypothesis)
         self.loop_rate.sleep()
