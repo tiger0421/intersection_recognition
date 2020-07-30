@@ -8,11 +8,13 @@
 #include <cmath>
 #include <vector>
 
+#include <iostream>
+
 class Variables {
      public:
         Variables();
         std_msgs::Bool* turn_flg_;
-        geometry_msgs::Twist* vel_;
+        geometry_msgs::Twist vel_;
         float rotate_rad_ = 0;
         void hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis);
         void moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data);
@@ -31,14 +33,12 @@ class Variables {
 
 Variables::Variables(){
     turn_flg_->data = false;
-    cmd_vel_pub_ = node_.advertise<geometry_msgs::Twist>("/cmd_vel", 1, false);
+    cmd_vel_pub_ = node_.advertise<geometry_msgs::Twist>("/icart_mini/cmd_vel", 1, false);
     turn_flg_pub_ = node_.advertise<std_msgs::Bool>("/turn_flg", 1, false);
     hypothesis_sub_ = node_.subscribe<std_msgs::String> ("/hypothesis", 1, &Variables::hypothesisCallback, this);
     imu_sub_ = node_.subscribe<sensor_msgs::Imu> ("/imu_data", 1, &Variables::moveCallback, this);
 
     target_condition_.push_back("threeway_left");
-    target_condition_.push_back("threeway_center");
-    target_action_.push_back("left");
     target_action_.push_back("left");
 
     ROS_INFO("fin init");
@@ -48,6 +48,7 @@ void Variables::hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis)
     if(!turn_flg_->data){
         if(! (hypothesis->data.c_str() == target_condition_[cnt_])){
             ROS_INFO("different between hypothesis(%s) and target(%s)", hypothesis->data.c_str(), target_condition_[cnt_].c_str());
+            buff_ = 0;
         }
         else{
             buff_++;
@@ -72,9 +73,9 @@ void Variables::hypothesisCallback(const std_msgs::String::ConstPtr& hypothesis)
 }
 
 void Variables::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
-    ROS_INFO("IMU received");
-    if(turn_flg_){
-        rotate_rad_ += std::abs(imu_data->angular_velocity.z);
+    if(turn_flg_->data){
+        rotate_rad_ += std::abs(imu_data->angular_velocity.z/100);
+        ROS_INFO("rotate_rad is %f\n", rotate_rad_);
     
         if(rotate_rad_ >= 3.14/2){
             turn_flg_->data = false;
@@ -85,21 +86,21 @@ void Variables::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
 
 // If turn_flg is True, make a robot go straight, if not, turn right or left.
     if(! turn_flg_->data){
-        vel_->linear.x = 1;
+        vel_.linear.x = 0.8;
     }
     else{
 // may inverse angular.z
         if(target_action_[cnt_-1] == "left"){
-            vel_->angular.z = 1;
+            vel_.angular.z = 1.0;
         }
-        else{
-            vel_->angular.z = -1;
+        else if (target_action_[cnt_-1] == "right"){
+            vel_.angular.z = -1.0;
         }
     }
 
-    cmd_vel_pub_.publish(*vel_);
-    vel_->linear.x = 0;
-    vel_->angular.z = 0;
+    cmd_vel_pub_.publish(vel_);
+    vel_.linear.x = 0.0;
+    vel_.angular.z = 0.0;
 }
 
 int main(int argc, char** argv){
