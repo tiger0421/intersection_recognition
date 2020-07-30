@@ -6,7 +6,7 @@ junction recognition(ros ver.)
 ## movie
 https://youtu.be/1tNvuxRLBRw
 
-### on simulator
+### On simulator
 The robot go straight until it find 3-way junction whici can turn left.
 - Test 1
 a straight road
