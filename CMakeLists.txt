@@ -222,3 +222,11 @@ target_link_libraries(
   cmd_vel_controller
   ${catkin_LIBRARIES}
 )
+
+add_executable(simple_junction_recognition
+    src/simple_junction_recognition.cpp
+)
+target_link_libraries(
+  simple_junction_recognition
+  ${catkin_LIBRARIES}
+)
