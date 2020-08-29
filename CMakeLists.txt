@@ -230,3 +230,11 @@ target_link_libraries(
   simple_junction_recognition
   ${catkin_LIBRARIES}
 )
+
+add_executable(toe-finding
+    src/toe-finding.cpp
+)
+target_link_libraries(
+  toe-finding
+  ${catkin_LIBRARIES}
+)
