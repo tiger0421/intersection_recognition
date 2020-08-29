@@ -21,7 +21,8 @@ class JunctionRecognition {
 };
 
 JunctionRecognition::JunctionRecognition(){
-        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan2", 1, &JunctionRecognition::scanCallback, this);
+//        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan2", 1, &JunctionRecognition::scanCallback, this);
+        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan", 1, &JunctionRecognition::scanCallback, this);
         scan_pub_ = node_.advertise<std_msgs::String> ("hypothesis", 1, false);
 }
 
@@ -38,9 +39,9 @@ void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& s
     unsigned int index_front_point = 0;
     unsigned int index_right_point = 0;
 
-    if(scan->angle_max >= M_PI_2){
-        index_left_point = static_cast<unsigned int>((-M_PI_2 - scan->angle_min) / scan->angle_increment);
-        index_right_point = static_cast<unsigned int>((scan->angle_max - M_PI_2) / scan->angle_increment);
+    if((scan->angle_max >= 3.14/2) && (scan->angle_min < -3.14/2)){
+        index_right_point = static_cast<unsigned int>((-M_PI_2 - scan->angle_min) / scan->angle_increment);
+        index_left_point = static_cast<unsigned int>((scan->angle_max - M_PI_2 + M_PI) / scan->angle_increment);
         index_front_point = (index_left_point + index_right_point) / 2;
     }
     else{
@@ -50,9 +51,15 @@ void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& s
         ros::shutdown();
     }
 
+    std::cout<< "left data is " << index_left_point << std::endl;
+    std::cout<< "front data is " << index_front_point << std::endl;
+    std::cout<< "right data is " << index_right_point << std::endl;
+
+
+
     std::cout<< "left data is " << scan->ranges[index_left_point] << std::endl;
-    std::cout<< "front data is " << scan->ranges[index_right_point] << std::endl;
-    std::cout<< "right data is " << scan->ranges[index_front_point] << std::endl;
+    std::cout<< "front data is " << scan->ranges[index_front_point] << std::endl;
+    std::cout<< "right data is " << scan->ranges[index_right_point] << std::endl;
 
 }
 
