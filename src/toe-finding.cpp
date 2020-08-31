@@ -1,8 +1,12 @@
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
+#include "visualization_msgs/MarkerArray.h"
+#include "tf/transform_broadcaster.h"
 #include "std_msgs/String.h"
+#include <geometry_msgs/Twist.h>
 #include <iostream>
 #include <unistd.h>
+#include <cstdlib>
 #include <string>
 #include <bits/stdc++.h>
 #include <vector>
@@ -12,6 +16,9 @@ class JunctionRecognition {
         JunctionRecognition();
         int hz;
         int off_set;
+        float epsilon1;
+        float epsilon2;
+        float epsilon3;
         void get_ros_param(void);
         void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
         const std::string TRAIN_DATA_FILES[7] = {"dead_end", "left", "right", "straight", "threeway_left", "threeway_center", "threeway_right"};
@@ -20,38 +27,161 @@ class JunctionRecognition {
         ros::NodeHandle node_;
         ros::Publisher scan_pub_;
         ros::Subscriber scan_sub_;
+        ros::Publisher marker_pub_;
 };
 
 JunctionRecognition::JunctionRecognition(){
 //        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan2", 1, &JunctionRecognition::scanCallback, this);
         scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan", 1, &JunctionRecognition::scanCallback, this);
         scan_pub_ = node_.advertise<std_msgs::String> ("hypothesis", 1, false);
+        marker_pub_ = node_.advertise<visualization_msgs::MarkerArray>("visualization_markerarray", 1);
 }
 
 void JunctionRecognition::get_ros_param(void){
     // error reason is maybe this
-    this->hz = 1;
+    hz = 1;
+    off_set = 10;
+    epsilon1 = 0.25;
+    epsilon3 = 0.8;
+
     sleep(1);
-    node_.getParam("adjust_hz/scan_hz", this->hz);
-    this->off_set = 10;
+    node_.getParam("adjust_hz/scan_hz", hz);
 }
 
 void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
     float delta_h, delta_i, delta_j;
-    std::vector<float> v_scan;
+    std::vector<int> toe_index_list;
     int num_cloud = scan->ranges.size();
-    for(int i = 0; i < num_cloud; i += this->off_set){
-        delta_h = scan->ranges[(i - this->off_set + num_cloud) % num_cloud];
-        delta_i = scan->ranges[i];
-        delta_j = scan->ranges[(i + this->off_set) % num_cloud];
+    float delta_max = 0.001;
 
-        std::cout << (i-this->off_set+num_cloud)%num_cloud << std::endl;
-        std::cout << i << std::endl;
-        std::cout << (i+this->off_set) %num_cloud << std::endl;
-        std::cout << std::endl;
+// add all peaks to list
+    for(int i = 0; i < num_cloud; i += off_set){
+        delta_h = scan->ranges[(i - off_set + num_cloud) % num_cloud];
+        delta_i = scan->ranges[i];
+        delta_j = scan->ranges[(i + off_set) % num_cloud];
+
+        if((delta_i > delta_h) && (delta_i > delta_j)){
+            toe_index_list.push_back(i);
+            delta_max = std::max(delta_max, scan->ranges[i]);
+        }
     }
 
+// remove peak
+    float scan_avg = std::accumulate(scan->ranges.begin(), scan->ranges.end(), 0.0) / scan->ranges.size();
+    int index = 0;
+    std::vector<int>::iterator it = toe_index_list.begin();
 
+    while(it != toe_index_list.end()){
+        if((scan->ranges[*it] < scan_avg) || (scan->ranges[*it]/delta_max < this->epsilon1)){
+            toe_index_list.erase(it);
+        }
+        else{
+            ++it;
+        }
+    }
+
+// merge peaks
+    epsilon2 = scan->ranges.size() / 8;
+    it = toe_index_list.begin();
+    int index_prev = 0;
+    for(int j = 0; j < toe_index_list.size();){
+        if(toe_index_list.size() <= 1) break;
+        index = *(it + j);
+        index_prev = *(it + ((j - 1 + toe_index_list.size()) % toe_index_list.size()));
+        if(abs(index - index_prev) < epsilon2){
+            if(scan->ranges[index] > scan->ranges[index_prev]){
+                toe_index_list.erase(it + (j-1+toe_index_list.size())%toe_index_list.size());
+            }
+            else{
+                toe_index_list.erase(it + j);
+            }
+        }
+        else{
+            ++j;
+        }
+    }
+
+// remove peak with epsilon3
+    //std::vector<int>::iterator scan_iter_begin, scan_iter_end;
+    float delta_avg = 0;
+    
+// remove unimportant valley between toe_index_list[-1] and toe_index_list[0]
+    if(toe_index_list.size() > 1){
+        auto scan_iter_begin = std::next(scan->ranges.begin(), toe_index_list[0]);
+        auto scan_iter_end = std::next(scan->ranges.begin(), toe_index_list.back());
+
+        delta_avg = std::accumulate(scan_iter_end, scan->ranges.end(), 0);
+        delta_avg += std::accumulate(scan->ranges.begin(), scan_iter_begin, 0);
+        delta_avg /= (scan->ranges.size() - toe_index_list.back()) + toe_index_list[0] + 1;
+
+        if((2*delta_avg/(scan->ranges[toe_index_list.back()] + scan->ranges[toe_index_list[0]])) > epsilon3){
+            if(scan->ranges[toe_index_list[0]] < scan->ranges[toe_index_list.back()]){
+                toe_index_list.erase(toe_index_list.begin());
+            }
+            else{
+                toe_index_list.erase(toe_index_list.begin() + (toe_index_list.size() - 1));
+            }
+        }
+// remove unimportant valley
+        for(int i=0; i < toe_index_list.size()-1;){
+            scan_iter_begin = std::next(scan->ranges.begin(), toe_index_list[i]);
+            scan_iter_end = std::next(scan->ranges.begin(), toe_index_list[i+1]);
+            if(2*delta_avg/(scan->ranges[toe_index_list[i]] + scan->ranges[toe_index_list[i+1]]) > epsilon3){
+                if(scan->ranges[toe_index_list[i]] < scan->ranges[toe_index_list[i+1]]){
+                    toe_index_list.erase(toe_index_list.begin() + i);
+                }
+                else{
+                    toe_index_list.erase(toe_index_list.begin() + i + 1);
+                }
+            }
+            else{
+                i++;
+            }
+        }
+    }
+
+// publish line for rviz
+    visualization_msgs::MarkerArray marker_line;
+    marker_line.markers.resize(toe_index_list.size());
+    geometry_msgs::Point linear_start;
+    geometry_msgs::Point linear_end;
+
+    for(int i = 0; i < toe_index_list.size(); i++){
+        marker_line.markers[i].header.frame_id = "/base_link";
+        marker_line.markers[i].header.stamp = ros::Time::now();
+        marker_line.markers[i].ns = "toe";
+        marker_line.markers[i].id = i;
+        marker_line.markers[i].lifetime = ros::Duration(hz);
+
+        marker_line.markers[i].type = visualization_msgs::Marker::LINE_LIST;
+        marker_line.markers[i].action = visualization_msgs::Marker::ADD;
+
+        linear_start.x = 0;
+        linear_start.y = 0;
+        linear_start.z = 0;
+
+        linear_end.x = scan->ranges[toe_index_list[i]];
+        linear_end.y = 0;
+        linear_end.z = 0;
+
+        marker_line.markers[i].points.resize(2);
+        marker_line.markers[i].points[0] = linear_start;
+        marker_line.markers[i].points[1] = linear_end;
+
+        marker_line.markers[i].scale.x = 0.1;
+
+        float yaw_rad = scan->angle_min + toe_index_list[i] * scan->angle_increment;
+        tf::Quaternion quat=tf::createQuaternionFromRPY(0, 0, yaw_rad);
+        geometry_msgs::Quaternion geometry_quat;
+        quaternionTFToMsg(quat, geometry_quat);
+        marker_line.markers[i].pose.orientation = geometry_quat;
+
+        marker_line.markers[i].color.r = 0.0f;
+        marker_line.markers[i].color.g = 1.0f;
+        marker_line.markers[i].color.b = 0.0f;
+        marker_line.markers[i].color.a = 1.0f;
+    }
+    marker_pub_.publish(marker_line);
 }
 
 int main(int argc, char** argv){
