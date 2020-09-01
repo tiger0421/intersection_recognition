@@ -1,0 +1,11 @@
+<launch>
+  <node name="toe_finding" pkg="intersection_recognition" type="toe_finding" output="screen" >
+    <param name="scan_hz" value="1"/>
+    <param name="scan_off_set" value="10"/>
+    <param name="epsilon1" value="0.25"/>
+    <param name="epsilon3" value="0.8"/>
+  </node>
+
+
+
+</launch>

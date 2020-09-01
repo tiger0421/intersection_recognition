@@ -6,9 +6,9 @@
 #include <string>
 #include <bits/stdc++.h>
 
-class JunctionRecognition {
+class intersectionRecognition {
      public:
-        JunctionRecognition();
+        intersectionRecognition();
         int hz;
         void get_ros_param(void);
         void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
@@ -20,20 +20,20 @@ class JunctionRecognition {
         ros::Subscriber scan_sub_;
 };
 
-JunctionRecognition::JunctionRecognition(){
-//        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan2", 1, &JunctionRecognition::scanCallback, this);
-        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan", 1, &JunctionRecognition::scanCallback, this);
+intersectionRecognition::intersectionRecognition(){
+//        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan2", 1, &intersectionRecognition::scanCallback, this);
+        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan", 1, &intersectionRecognition::scanCallback, this);
         scan_pub_ = node_.advertise<std_msgs::String> ("hypothesis", 1, false);
 }
 
-void JunctionRecognition::get_ros_param(void){
+void intersectionRecognition::get_ros_param(void){
     // error reason is maybe this
     this->hz = 1;
     sleep(1);
     node_.getParam("adjust_hz/scan_hz", this->hz);
 }
 
-void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
+void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
     std::cout << "hz is " << this->hz << std::endl;
     unsigned int index_left_point = 0;
     unsigned int index_front_point = 0;
@@ -65,7 +65,7 @@ void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& s
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "adjust_hz");
-    JunctionRecognition recognition;
+    intersectionRecognition recognition;
     recognition.get_ros_param();
     ros::Rate loop_rate(recognition.hz);
     while(ros::ok()){

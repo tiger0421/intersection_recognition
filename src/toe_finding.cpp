@@ -8,9 +8,9 @@
 #include <vector>
 //#include <iostream>
 
-class JunctionRecognition {
+class intersectionRecognition {
      public:
-        JunctionRecognition();
+        intersectionRecognition();
         int hz;
         int off_set;
         float epsilon1;
@@ -25,12 +25,12 @@ class JunctionRecognition {
         ros::Publisher marker_pub_;
 };
 
-JunctionRecognition::JunctionRecognition(){
-        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan", 1, &JunctionRecognition::scanCallback, this);
+intersectionRecognition::intersectionRecognition(){
+        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan", 1, &intersectionRecognition::scanCallback, this);
         marker_pub_ = node_.advertise<visualization_msgs::MarkerArray>("visualization_markerarray", 1);
 }
 
-void JunctionRecognition::get_ros_param(void){
+void intersectionRecognition::get_ros_param(void){
     hz = 1;
     off_set = 10;
     epsilon1 = 0.25;
@@ -43,7 +43,7 @@ void JunctionRecognition::get_ros_param(void){
     node_.getParam("toe_finding/epsilon3", epsilon3);
 }
 
-void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
+void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
     float delta_h, delta_i, delta_j;
     std::vector<int> toe_index_list;
     int num_cloud = scan->ranges.size();
@@ -180,7 +180,7 @@ void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& s
 
 int main(int argc, char** argv){
     ros::init(argc, argv, "toe_finding");
-    JunctionRecognition recognition;
+    intersectionRecognition recognition;
     recognition.get_ros_param();
     ros::Rate loop_rate(recognition.hz);
     while(ros::ok()){

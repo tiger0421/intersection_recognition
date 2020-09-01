@@ -10,7 +10,7 @@ catkin build
 
 # clone repo
 cd ~/catkin_ws/src
-git clone https://github.com/tiger0421/ros_junction_recognition.git
+git clone https://github.com/tiger0421/intersection_recognition.git
 catkin build
 cd ~/
 
