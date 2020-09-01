@@ -1,8 +1,19 @@
 # rosInterctionRecognition
 intersection recognition(ros ver.)
+
 ## param
-"hz" : frequency of 2D-LiDAR  
-"model_full_path": load Neural Network model(.h5)
+- hypothesis_simple.launch
+  - toe_finding
+    - "scan_hz" : Frequency of 2D-LiDAR
+    - "scan_off_set" : How many adjacent point clouds to ignore
+    - "epsilon1" : Threshold
+    - "epsilon2" : Threshold
+    - "epsilon3" : Threshold
+
+- hypothesis.launch
+  - intersection_recognition_tensorflow.p
+    - "model_full_path": Path to load Neural Network model(.h5)
+
 ## movie
 https://youtu.be/1tNvuxRLBRw
 
