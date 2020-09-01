@@ -3,7 +3,7 @@
     <param name="scan_hz" value="1"/>
   </node>
   <node name="tensorflow" pkg="intersection_recognition" type="intersection_recognition_tensorflow.py" output="screen" >
-    <param name="model_full_path" value="/home/sima/ros_ws/intersection_ws/src/intersection_recognition/model/NN.h5"/>
+    <param name="model_full_path" value="/home/docker/catkin_ws/src/intersection_recognition/model/NN.h5"/>
   </node>
   <node name="cmd_vel_controller" pkg="intersection_recognition" type="cmd_vel_controller" output="screen" >
   </node>

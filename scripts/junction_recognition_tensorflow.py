@@ -23,7 +23,7 @@ class Variables:
         NUM_CLASSES = len(self.TRAIN_DATA_FILES)
         self.MAX_LASER_DISTANCE = 30.0
 
-        rosparam.set_param("model_full_path", "/home/sima/catkin_tensorflow_ws/src/tensorflow/model/NN.h5")
+        rosparam.set_param("model_full_path", "/home/docker/catkin_ws/src/intersection_ws/model/NN.h5")
         model_full_path = rosparam.get_param("tensorflow/model_full_path")
         self.model = keras.models.load_model(model_full_path)
 
