@@ -3,11 +3,10 @@
 #include "visualization_msgs/MarkerArray.h"
 #include "tf/transform_broadcaster.h"
 #include <geometry_msgs/Twist.h>
-#include <iostream>
-#include <unistd.h>
 #include <cstdlib>
 #include <bits/stdc++.h>
 #include <vector>
+//#include <iostream>
 
 class JunctionRecognition {
      public:
@@ -98,7 +97,6 @@ void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& s
     }
 
 // remove peak with epsilon3
-    //std::vector<int>::iterator scan_iter_begin, scan_iter_end;
     float delta_avg = 0;
     
 // remove unimportant valley between toe_index_list[-1] and toe_index_list[0]
@@ -181,7 +179,7 @@ void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& s
 }
 
 int main(int argc, char** argv){
-    ros::init(argc, argv, "adjust_hz");
+    ros::init(argc, argv, "toe_finding");
     JunctionRecognition recognition;
     recognition.get_ros_param();
     ros::Rate loop_rate(recognition.hz);
