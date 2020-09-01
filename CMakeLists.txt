@@ -238,3 +238,11 @@ target_link_libraries(
   toe_finding
   ${catkin_LIBRARIES}
 )
+
+add_executable(extended_toe_finding
+    src/extended_toe_finding.cpp
+)
+target_link_libraries(
+  extended_toe_finding
+  ${catkin_LIBRARIES}
+)

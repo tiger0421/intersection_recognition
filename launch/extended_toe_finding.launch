@@ -1,0 +1,6 @@
+<launch>
+  <node name="extended_toe_finding" pkg="intersection_recognition" type="extended_toe_finding" output="screen" >
+    <param name="scan_hz" value="10"/>
+  </node>
+
+</launch>
