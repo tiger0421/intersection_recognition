@@ -231,10 +231,10 @@ target_link_libraries(
   ${catkin_LIBRARIES}
 )
 
-add_executable(toe-finding
-    src/toe-finding.cpp
+add_executable(toe_finding
+    src/toe_finding.cpp
 )
 target_link_libraries(
-  toe-finding
+  toe_finding
   ${catkin_LIBRARIES}
 )

@@ -2,12 +2,10 @@
 #include "sensor_msgs/LaserScan.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "tf/transform_broadcaster.h"
-#include "std_msgs/String.h"
 #include <geometry_msgs/Twist.h>
 #include <iostream>
 #include <unistd.h>
 #include <cstdlib>
-#include <string>
 #include <bits/stdc++.h>
 #include <vector>
 
@@ -21,31 +19,29 @@ class JunctionRecognition {
         float epsilon3;
         void get_ros_param(void);
         void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
-        const std::string TRAIN_DATA_FILES[7] = {"dead_end", "left", "right", "straight", "threeway_left", "threeway_center", "threeway_right"};
 
      private:
         ros::NodeHandle node_;
-        ros::Publisher scan_pub_;
         ros::Subscriber scan_sub_;
         ros::Publisher marker_pub_;
 };
 
 JunctionRecognition::JunctionRecognition(){
-//        scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan2", 1, &JunctionRecognition::scanCallback, this);
         scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan", 1, &JunctionRecognition::scanCallback, this);
-        scan_pub_ = node_.advertise<std_msgs::String> ("hypothesis", 1, false);
         marker_pub_ = node_.advertise<visualization_msgs::MarkerArray>("visualization_markerarray", 1);
 }
 
 void JunctionRecognition::get_ros_param(void){
-    // error reason is maybe this
     hz = 1;
     off_set = 10;
     epsilon1 = 0.25;
     epsilon3 = 0.8;
 
     sleep(1);
-    node_.getParam("adjust_hz/scan_hz", hz);
+    node_.getParam("toe_finding/scan_hz", hz);
+    node_.getParam("toe_finding/scan_off_set", off_set);
+    node_.getParam("toe_finding/epsilon1", epsilon1);
+    node_.getParam("toe_finding/epsilon3", epsilon3);
 }
 
 void JunctionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
