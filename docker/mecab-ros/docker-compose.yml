@@ -1,0 +1,13 @@
+version: '2.3'
+
+services:
+  intersection_recognition_mecab:
+    image: tiger0421/ros_intersection_recognition:latest
+    container_name: ros-mecab
+    network_mode: "host"
+    volumes:
+      - ~/share:/root/share:rw
+      - ~/ros_ws/intersection_recognition:/root/catkin_ws/src/intersection_recognition:rw
+    working_dir: /root
+    command: bash -c "source /root/catkin_ws/devel/setup.bash; roslaunch intersection_recognition read_scenario.launch"
+

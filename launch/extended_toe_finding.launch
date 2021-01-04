@@ -1,0 +1,8 @@
+<launch>
+  <node name="extended_toe_finding" pkg="intersection_recognition" type="extended_toe_finding" output="screen" >
+    <param name="SCAN_HZ" value="10"/>
+    <param name="distance_thresh" value="3.0"/>
+  </node>
+  <node name="rviz" pkg="rviz" type="rviz" />
+
+</launch>

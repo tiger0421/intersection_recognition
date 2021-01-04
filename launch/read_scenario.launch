@@ -1,0 +1,6 @@
+<launch>
+  <node name="read_scenario" pkg="intersection_recognition" type="read_scenario.py" output="screen" >
+    <param name="scenario_path" value="$(find intersection_recognition)/config/Scenarios/scenario01.txt"/>
+  </node>
+
+</launch>
