@@ -48,7 +48,7 @@ class cmdVelController {
 };
 
 cmdVelController::cmdVelController(){
-    cmd_vel_pub_ = node_.advertise<geometry_msgs::Twist>("icart_mini/cmd_vel", 1, false);
+    cmd_vel_pub_ = node_.advertise<geometry_msgs::Twist>("cmd_vel", 1, false);
     turn_finish_flg_pub_ = node_.advertise<std_msgs::Bool>("turn_finish_flg", 1, false);
 
     imu_sub_ = node_.subscribe<sensor_msgs::Imu> ("imu_data", 1, &cmdVelController::moveCallback, this);
@@ -66,9 +66,9 @@ void cmdVelController::getRosParam(void){
     CHANGE_DIRECTION_DISTANCE_THRESH = 0.40;
     CHANGE_DIRECTION_RAD = 0.3;
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
-    node_.getParam("cmd_vel_controller2/IMU_HZ", IMU_HZ);
-    node_.getParam("cmd_vel_controller2/reverse_turn", reverse_turn);
-    node_.getParam("cmd_vel_controller2/CHANGE_DIRECTION_DISTANCE_THRESH", CHANGE_DIRECTION_DISTANCE_THRESH);
+    node_.getParam("cmd_vel_controller/IMU_HZ", IMU_HZ);
+    node_.getParam("cmd_vel_controller/reverse_turn", reverse_turn);
+    node_.getParam("cmd_vel_controller/CHANGE_DIRECTION_DISTANCE_THRESH", CHANGE_DIRECTION_DISTANCE_THRESH);
 }
 
 void cmdVelController::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
