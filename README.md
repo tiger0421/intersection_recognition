@@ -30,7 +30,7 @@ $ roslaunch intersection_recognition simple_hypothesis.launch
     - **model_full_path**: Path to load Neural Network model(.h5)
 
 ### Node
-![image](https://user-images.githubusercontent.com/20837922/95672217-e7d16280-0bd9-11eb-92d9-93dac311336b.png)
+![node_image](https://user-images.githubusercontent.com/20837922/103510242-2a889b00-4ea8-11eb-97c9-d5c669e6efb8.png)
   - **check_scenario** : Compare scenario and hypothesis of intersection.
     - **/rotate_rad** : Specifies how much the robot should rotate with /rotate_rad (if /rotate_rad == 0, then go straight).
   - **cmd_vel_controller2** : The robot will rotate at the angle specified by /rotate_rad to publish cmd_vel.
