@@ -1,11 +1,13 @@
 <launch>
   <node name="extended_toe_finding" pkg="intersection_recognition" type="extended_toe_finding" output="screen" >
+    <remap from="scan" to="vel_scan" />
     <param name="SCAN_HZ" value="10"/>
     <param name="distance_thresh" value="3.0"/>
   </node>
 
   <node name="scenario_executor" pkg="intersection_recognition" type="scenario_executor" output="screen" />
   <node name="cmd_vel_controller" pkg="intersection_recognition" type="cmd_vel_controller" output="screen" >
+    <remap from="cmd_vel" to="icart_mini/cmd_vel" />
     <param name="IMU_HZ" value="100.0"/>
     <param name="reverse_turn" value="1.0"/>
   </node>
