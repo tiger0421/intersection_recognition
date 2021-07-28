@@ -245,14 +245,6 @@ target_link_libraries(
   ${catkin_LIBRARIES}
 )
 
-add_executable(cmd_vel_controller2
-    src/cmd_vel_controller2.cpp
-)
-add_dependencies(cmd_vel_controller2 intersection_recognition_generate_messages_cpp)
-target_link_libraries(
-  cmd_vel_controller2
-  ${catkin_LIBRARIES}
-)
 
 add_executable(simple_emergency_stop
     src/simple_emergency_stop.cpp
