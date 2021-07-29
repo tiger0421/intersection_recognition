@@ -3,14 +3,14 @@
 import rospy
 import rosparam
 from std_msgs.msg import String
-from intersection_recognition.msg import Scenario
+from intersection_recognition import Scenario
 import MeCab
 
 class ScenarioParser:
     def __init__(self):
         self.hz = 1
         self.loop_rate = rospy.Rate(self.hz)
-        self.scenario_pub_ = rospy.Publisher('scenario', Scenario, queue_size=10)
+        self.scenario_service_proxy_ = rospy.ServiceProxy('intersection_recognition', Scenario)
 
         self.ACTIONS = ["直進", "前進", "右折", "左折", "向く", "停止", "曲がる"]
         self.DIRECTIONS = ["前", "前方", "右", "右手", "左", "左手", "後ろ", "後方"]
@@ -36,7 +36,7 @@ class ScenarioParser:
                 result = action + direction
         else:
             result = action
-        
+
         return result
 
 # Translate each features(for example, action and direction) of scenario from Japanese to English
@@ -60,8 +60,8 @@ class ScenarioParser:
         else:
             return_action = action
         return_action = self.complement_scenario_action_turn_xxx(return_direction, return_action)
-           
-        return return_type, return_direction, return_action 
+
+        return return_type, return_direction, return_action
 
 # get a word related to "distance"
     def get_distance(self, sentence):
@@ -120,7 +120,7 @@ class ScenarioParser:
 
         return "nothing"
 
-    
+
 # get a word related to "type"
     def get_type(self, sentence):
         try:
@@ -162,7 +162,7 @@ class ScenarioParser:
                 condition = sentence[i]
                 if("見える" in sentence[i-1]):
                     condition = "見えるまで"
-                
+
                 return condition
 
         except Exception as e:
@@ -197,10 +197,8 @@ class ScenarioParser:
             self.condition_.append(condition)
             self.action_.append(action)
 
-# publish conditions and action
-    def publish_scenarios(self, i):
-        scenario_msg = Scenario()
-        self.loop_rate.sleep()
+# send conditions and action
+    def send_scenarios(self, i):
 
     # debug
 #        print "type is ", self.type_[i]
@@ -208,11 +206,13 @@ class ScenarioParser:
 #        print "direction is ", self.direction_[i]
 #        print "action is ", self.action_[i]
 
-        scenario_msg.type, scenario_msg.direction, scenario_msg.action = self.translation_from_ja_to_en(self.type_[i], self.direction_[i], self.action_[i])
-        scenario_msg.order = self.order_[i]
-         
-        self.scenario_pub_.publish(scenario_msg) 
-        self.loop_rate.sleep()
+        scenario_order = self.order_[i]
+        scenario_type, scenario_direction, scenario_action = self.translation_from_ja_to_en(self.type_[i], self.direction_[i], self.action_[i])
+
+        try:
+            self.scenario_service_proxy_(scenario_type, scenario_order, scenario_direction, scenario_action)
+        except rospy.ServiceException, e:
+            print("Service call failed: %s", %e)
 
     def show_result(self):
         for i in range(len(self.action_)):
@@ -246,9 +246,10 @@ if __name__ == '__main__':
             scenario_parser.show_result()
             print("#######################################\n")
 
+        rospy.wait_for_service('scenario')
         for i in range(len(scenario_parser.type_)):
-            scenario_parser.publish_scenarios(i)
-        print "Finish publishing scenarios"
+            scenario_parser.send_scenarios(i)
+        print "Finish sending scenarios"
         rospy.spin()
 
     except rospy.ROSInterruptException:

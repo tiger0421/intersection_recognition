@@ -21,19 +21,20 @@ class cmdVelController {
         void loadNextScenario(void);
         void updateLastNode(bool center_flg, bool back_flg, bool left_flg, bool right_flg);
         bool compareLastNodeAndCurrentNode(const intersection_recognition::Hypothesis::ConstPtr& hypothesis);
+
         void turnFinishFlgCallback(const std_msgs::Bool::ConstPtr& turn_finish_flg);
-        void scenarioCallback(const intersection_recognition::Scenario::ConstPtr& scenario);
         void hypothesisCallback(const intersection_recognition::Hypothesis::ConstPtr& hypothesis);
         void emergencyStopFlgCallback(const std_msgs::Bool::ConstPtr& emergency_stop_flg);
-
+        bool scenarioCallback(intersection_recognition::Scenario::Request& scenario,
+                              intersection_recognition::Scenario::Response& res);
      private:
         ros::NodeHandle node_;
         ros::Publisher emergency_stop_flg_pub_;
         ros::Publisher rotate_rad_pub_;
         ros::Subscriber hypothesis_sub_;
-        ros::Subscriber scenario_sub_;
         ros::Subscriber emergency_stop_flg_sub_;
         ros::Subscriber turn_finish_flg_sub_;
+        ros::ServiceServer scenario_server_;
 
         std::list<std::string> target_type_;
         std::list<std::int16_t> target_order_;
@@ -44,7 +45,6 @@ class cmdVelController {
         std::list<std::int16_t>::iterator target_order_itr_begin_;
         std::list<std::string>::iterator target_direction_itr_begin_;
         std::list<std::string>::iterator target_action_itr_begin_;
-
 
         int scenario_num_ = 0;
         int scenario_progress_cnt_ = 0;
@@ -68,9 +68,9 @@ cmdVelController::cmdVelController(){
     rotate_rad_pub_ = node_.advertise<std_msgs::Float32>("rotate_rad", 1, false);
 
     turn_finish_flg_sub_ = node_.subscribe<std_msgs::Bool> ("turn_finish_flg", 1, &cmdVelController::turnFinishFlgCallback, this);
-    scenario_sub_ = node_.subscribe<intersection_recognition::Scenario> ("scenario", 1, &cmdVelController::scenarioCallback, this);
     hypothesis_sub_ = node_.subscribe<intersection_recognition::Hypothesis> ("hypothesis", 1, &cmdVelController::hypothesisCallback, this);
     emergency_stop_flg_sub_ = node_.subscribe<std_msgs::Bool> ("emergency_stop_flg", 1, &cmdVelController::emergencyStopFlgCallback, this);
+    scenario_server_ = node_.advertiseService("scenario", &cmdVelController::scenarioCallback, this);
 
     updateLastNode(false, false, false, false);
     getRosParam();
@@ -253,7 +253,7 @@ void cmdVelController::hypothesisCallback(const intersection_recognition::Hypoth
                 }
             }
         }
-        
+
         if(! turn_flg_){
             rotate_rad_for_pub_.data = 0.00;
             rotate_rad_pub_.publish(rotate_rad_for_pub_);
@@ -274,12 +274,13 @@ void cmdVelController::emergencyStopFlgCallback(const std_msgs::Bool::ConstPtr& 
     emergency_stop_flg_ = emergency_stop_flg->data;
 }
 
-void cmdVelController::scenarioCallback(const intersection_recognition::Scenario::ConstPtr& scenario){
+bool cmdVelController::scenarioCallback(intersection_recognition::Scenario::Request& scenario,
+                                        intersection_recognition::Scenario::Response& res){
     scenario_num_++;
-    target_type_.push_back(scenario->type);
-    target_order_.push_back(scenario->order);
-    target_direction_.push_back(scenario->direction);
-    target_action_.push_back(scenario->action);
+    target_type_.push_back(scenario.type);
+    target_order_.push_back(scenario.order);
+    target_direction_.push_back(scenario.direction);
+    target_action_.push_back(scenario.action);
 
     std::string last_action = *std::next(target_action_.begin(), scenario_num_ - 1);
 // check whether scenario is loaded
@@ -304,15 +305,16 @@ void cmdVelController::scenarioCallback(const intersection_recognition::Scenario
         emergency_stop_flg_pub_.publish(emergency_stop_flg_for_pub);
     }
 
-/*
+
 //  debug
     std::cout << "####################################" << std::endl;
-    std::cout << "type is " << scenario->type << std::endl;
-    std::cout << "order is "  << std::hex << scenario->order << std::endl;
-    std::cout << "direction is " << scenario->direction << std::endl;
-    std::cout << "action is " << scenario->action << std::endl;
+    std::cout << "type is " << scenario.type << std::endl;
+    std::cout << "order is "  << std::hex << scenario.order << std::endl;
+    std::cout << "direction is " << scenario.direction << std::endl;
+    std::cout << "action is " << scenario.action << std::endl;
     std::cout << "####################################" << std::endl;
-*/
+
+    return true;
 }
 
 int main(int argc, char** argv){
