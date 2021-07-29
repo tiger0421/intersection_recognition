@@ -3,7 +3,7 @@ services:
   intersection_recognition_mecab:
     build:
       context: .
-      dockerfile: Dockerfile-arm
+      dockerfile: Dockerfile
     image: tiger0421/ros_intersection_recognition:latest
     container_name: ros-mecab
     network_mode: "host"
