@@ -10,7 +10,7 @@ class ScenarioParser:
     def __init__(self):
         self.hz = 1
         self.loop_rate = rospy.Rate(self.hz)
-        self.scenario_service_proxy_ = rospy.ServiceProxy('intersection_recognition', Scenario)
+        self.scenario_service_proxy_ = rospy.ServiceProxy('scenario', Scenario)
 
         self.ACTIONS = ["直進", "前進", "右折", "左折", "向く", "停止", "曲がる"]
         self.DIRECTIONS = ["前", "前方", "右", "右手", "左", "左手", "後ろ", "後方"]
@@ -212,7 +212,7 @@ class ScenarioParser:
         try:
             self.scenario_service_proxy_(scenario_type, scenario_order, scenario_direction, scenario_action)
         except rospy.ServiceException, e:
-            print("Service call failed: %s", %e)
+            print("Service call failed: ", e)
 
     def show_result(self):
         for i in range(len(self.action_)):
