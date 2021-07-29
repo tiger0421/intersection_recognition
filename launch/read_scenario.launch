@@ -1,5 +1,5 @@
 <launch>
-  <node name="read_scenario" pkg="intersection_recognition" type="read_scenario.py" output="screen" >
+  <node name="scenario_parser" pkg="intersection_recognition" type="scenario_parser.py" output="screen" >
     <remap from="scan" to="vel_scan" />
     <param name="scenario_path" value="$(find intersection_recognition)/config/Scenarios/scenario01.txt"/>
   </node>

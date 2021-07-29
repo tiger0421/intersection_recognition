@@ -16,7 +16,7 @@
     <param name="stop_distance_thresh" value="0.2"/>
   </node>
 -->
-  <node name="read_scenario" pkg="intersection_recognition" type="read_scenario.py" output="screen" >
+  <node name="scenario_parser" pkg="intersection_recognition" type="scenario_parser.py" output="screen" >
     <param name="scenario_path" value="$(find intersection_recognition)/config/Scenarios/scenario01.txt" />
   </node>
 
