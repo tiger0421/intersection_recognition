@@ -24,10 +24,10 @@ RUN apt update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install gensim
-RUN curl https://bootstrap.pypa.io/get-pip.py | python && \
+RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py | python && \
     pip install \
         gensim \
-        mecab-python3
+        mecab-python
 
 # Install mecab-ipadic-NEologd
 RUN mkdir /tmp/neologd \
