@@ -1,4 +1,4 @@
-FROM osrf/ros:melodic-desktop-full
+FROM ros:melodic
 
 # Install MeCab
 RUN apt update && \
@@ -25,9 +25,9 @@ RUN apt update && \
 
 # Install gensim
 RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py | python && \
-    pip install \
+    python -m pip install --no-cache-dir \
         gensim \
-        mecab-python
+        mecab-python3==1.0.0
 
 # Install mecab-ipadic-NEologd
 RUN mkdir /tmp/neologd \
@@ -37,7 +37,7 @@ RUN mkdir /tmp/neologd \
   && rm -rf /tmp/neologd
 
 # Install neologdn
-RUN pip install neologdn
+RUN pip install --no-cache-dir neologdn
 
 # Install CRF++
 RUN wget -O /tmp/CRF++-0.58.tar.gz "https://drive.google.com/uc?export=download&id=0B4y35FiV1wh7QVR6VXJ5dWExSTQ" \
@@ -59,6 +59,7 @@ RUN cd /tmp \
     | xargs -I{} curl -b  cabocha-0.69.tar.bz2 -L -o cabocha-0.69.tar.bz2 \
       "https://drive.google.com/uc?confirm={}&export=download&id=0B4y35FiV1wh7SDd1Q1dUQkZQaUU" \
   && tar jxf cabocha-0.69.tar.bz2 \
+  && rm cabocha-0.69.tar.bz2 \
   && cd cabocha-0.69 \
   && export CPPFLAGS=-I/usr/local/include \
   && ./configure --with-mecab-config=`which mecab-config` --with-charset=utf8 \

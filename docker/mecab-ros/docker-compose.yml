@@ -9,7 +9,7 @@ services:
     network_mode: "host"
     volumes:
       - ~/share:/root/share:rw
-      - ~/ros_ws/intersection_recognition:/root/catkin_ws/src/intersection_recognition:rw
+      - ~/workspace/intersection_recognition:/root/catkin_ws/src/intersection_recognition:rw
     working_dir: /root
     command: /bin/bash
 
