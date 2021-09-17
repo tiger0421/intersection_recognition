@@ -1,0 +1,39 @@
+version: '3'
+services:
+  xwindow:
+    image: busybox
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ~/.Xauthority:/root/.Xauthority:rw
+      - /tmp/.docker.$USER.xauth:/tmp/.docker.xauth:ro
+  yolo:
+    image: yolo/pytorch:1.7.0-cuda11.2.2-cudnn8-runtime
+    shm_size: '8gb'
+    container_name: yolo
+    tty: true
+    network_mode: "host"
+    runtime: nvidia
+    group_add:
+      - video
+    environment:
+      - MESA_GL_VERSION_OVERRIDE=4.2
+      - XAUTHORITY=/tmp/.docker.xauth
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - ~/share:/root/share:rw
+      - /dataset:/dataset:ro
+    volumes_from:
+      - xwindow
+    command: /bin/bash
+
+  intersection_recognition_mecab:
+    image: tiger0421/ros_intersection_recognition:latest
+    container_name: mecab
+    tty: true
+    network_mode: "host"
+    volumes:
+      - ~/share:/root/share:rw
+      - ~/workspace/intersection_recognition:/root/catkin_ws/src/intersection_recognition:rw
+    working_dir: /root
+    command: /bin/bash
