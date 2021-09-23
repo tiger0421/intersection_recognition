@@ -7,6 +7,7 @@
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <actionlib/client/simple_action_client.h>
 #include <intersection_recognition/BoundingBoxesAction.h>
@@ -43,28 +44,29 @@ class intersectionRecognition {
             float *distance_left, float *distance_center, float *distance_right, float *distance_back
         );
         void scanAndImageCallback(const sensor_msgs::LaserScan::ConstPtr& scan, const sensor_msgs::Image::ConstPtr& image_msg);
-        typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::LaserScan, sensor_msgs::Image> sync_policy_;
 
     private:
         ros::NodeHandle node_;
         ros::Publisher marker_pub_;
         ros::Publisher hypothesis_pub_;
         actionlib::SimpleActionClient<intersection_recognition::BoundingBoxesAction> action_client_;
+        typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::LaserScan, sensor_msgs::Image> sync_policy_;
+        typedef message_filters::Synchronizer<sync_policy_> Sync;
         message_filters::Subscriber<sensor_msgs::LaserScan> scan_sub_;
         message_filters::Subscriber<sensor_msgs::Image> image_sub_;
-        //message_filters::Synchronizer<sync_policy_> sync_;
+        boost::shared_ptr<Sync> sync_;
 
 };
 
 intersectionRecognition::intersectionRecognition() :
-    action_client_("yolov5_action", true),
-    scan_sub_(node_, "scan", 1),
-    image_sub_(node_, "image_raw", 1)
-    //sync_(sync_policy_(10), scan_sub_, image_sub_)
+    action_client_("yolov5_action", true)
 {
     marker_pub_ = node_.advertise<visualization_msgs::MarkerArray>("visualization_markerarray", 1);
     hypothesis_pub_ = node_.advertise<intersection_recognition::Hypothesis>("hypothesis", 1);
-    //sync_.registerCallback(&intersectionRecognition::scanAndImageCallback);
+    scan_sub_.subscribe(node_, "scan", 1);
+    image_sub_.subscribe(node_, "image_raw", 1);
+    sync_.reset(new Sync(sync_policy_(10), scan_sub_, image_sub_));
+    sync_->registerCallback(boost::bind(&intersectionRecognition::scanAndImageCallback, this, _1, _2));
 
     ROS_INFO("waiting for server: ");
     bool server_exists = action_client_.waitForServer(ros::Duration(5.0));
