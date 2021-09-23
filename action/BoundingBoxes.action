@@ -1,0 +1,5 @@
+sensor_msgs/Image image
+---
+BoundingBoxes yolo_result
+---
+bool error

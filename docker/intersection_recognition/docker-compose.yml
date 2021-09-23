@@ -22,6 +22,7 @@ services:
       - QT_X11_NO_MITSHM=1
     volumes:
       - ~/share:/root/share:rw
+      - ~/workspace/yolov5_pytorch_ros:/root/yolo_ws/src/yolov5_pytorch_ros:rw
       - /dataset:/dataset:ro
     volumes_from:
       - xwindow

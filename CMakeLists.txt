@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(intersection_recognition)
 
-## Compile as C++11, supported in ROS Kinetic and newer
- add_compile_options(-std=c++11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -14,6 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   message_generation
+  actionlib_msgs
+  actionlib
+  genmsg
+  message_filters
 )
 
 ## System dependencies are found with CMake's conventions
@@ -52,8 +56,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
+    Hypothesis.msg
   #  Scenario.msg
-  Hypothesis.msg
+    BoundingBox.msg
+    BoundingBoxes.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -65,17 +71,20 @@ add_message_files(
  )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+   FILES
+   BoundingBoxes.action
+)
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  std_msgs
+    geometry_msgs
+    sensor_msgs
+    std_msgs
+    actionlib_msgs
 )
+
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -109,7 +118,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES intersection_recognition
-  CATKIN_DEPENDS roscpp rospy sensor_msgs std_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy sensor_msgs std_msgs message_runtime 
 #  DEPENDS system_lib
 )
 
@@ -238,14 +247,13 @@ target_link_libraries(
 
 
 add_executable(scenario_executor
-    src/scenario_executor
+    src/scenario_executor.cpp
 )
 add_dependencies(scenario_executor intersection_recognition_generate_messages_cpp)
 target_link_libraries(
   scenario_executor
   ${catkin_LIBRARIES}
 )
-
 
 add_executable(simple_emergency_stop
     src/simple_emergency_stop.cpp
@@ -254,3 +262,15 @@ target_link_libraries(
   simple_emergency_stop
   ${catkin_LIBRARIES}
 )
+
+
+add_executable(extended_toe_finding_and_yolo
+    src/extended_toe_finding_and_yolo.cpp
+)
+add_dependencies(extended_toe_finding_and_yolo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(
+  extended_toe_finding_and_yolo
+  ${catkin_LIBRARIES}
+)
+
+
