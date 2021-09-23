@@ -1,0 +1,25 @@
+<launch>
+  <node name="extended_toe_finding_and_yolo" pkg="intersection_recognition" type="extended_toe_finding_and_yolo" output="screen" >
+    <remap from="scan" to="vel_scan" />
+    <param name="SCAN_HZ" value="10"/>
+    <param name="distance_thresh" value="3.0"/>
+  </node>
+
+  <node name="scenario_executor" pkg="intersection_recognition" type="scenario_executor" output="screen" />
+  <node name="cmd_vel_controller" pkg="intersection_recognition" type="cmd_vel_controller" output="screen" >
+    <remap from="cmd_vel" to="icart_mini/cmd_vel" />
+    <param name="IMU_HZ" value="100.0"/>
+    <param name="reverse_turn" value="1.0"/>
+  </node>
+<!--
+  <node name="emergency_stop" pkg="intersection_recognition" type="simple_emergency_stop" output="screen" >
+    <param name="stop_distance_thresh" value="0.2"/>
+  </node>
+-->
+  <node name="scenario_parser" pkg="intersection_recognition" type="scenario_parser.py" output="screen" >
+    <param name="scenario_path" value="$(find intersection_recognition)/config/Scenarios/scenario01.txt" />
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" />
+
+</launch>
