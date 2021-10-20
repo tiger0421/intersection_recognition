@@ -3,7 +3,7 @@
 import rospy
 import rosparam
 from std_msgs.msg import String
-from intersection_recognition import Scenario
+from intersection_recognition.srv import Scenario
 import MeCab
 
 class ScenarioParser:
@@ -201,29 +201,29 @@ class ScenarioParser:
     def send_scenarios(self, i):
 
     # debug
-#        print "type is ", self.type_[i]
-#        print "order is ", self.order_[i]
-#        print "direction is ", self.direction_[i]
-#        print "action is ", self.action_[i]
+#        print("type is ", self.type_[i])
+#        print("order is ", self.order_[i])
+#        print("direction is ", self.direction_[i])
+#        print("action is ", self.action_[i])
 
         scenario_order = self.order_[i]
         scenario_type, scenario_direction, scenario_action = self.translation_from_ja_to_en(self.type_[i], self.direction_[i], self.action_[i])
 
         try:
             self.scenario_service_proxy_(scenario_type, scenario_order, scenario_direction, scenario_action)
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             print("Service call failed: ", e)
 
     def show_result(self):
         for i in range(len(self.action_)):
-            print "#######################################"
-#            print "距離： ", self.distance_[i]
-            print "順番： ", self.order_[i]
-            print "方向： ", self.direction_[i]
-            print "通路： ", self.type_[i]
-            print "条件： ", self.condition_[i]
-            print "行動： ", self.action_[i]
-            print "\n"
+            print("#######################################")
+#            print("距離： ", self.distance_[i])
+            print("順番： ", self.order_[i])
+            print("方向： ", self.direction_[i])
+            print("通路： ", self.type_[i])
+            print("条件： ", self.condition_[i])
+            print("行動： ", self.action_[i])
+            print("\n")
 
 if __name__ == '__main__':
     try:
@@ -249,7 +249,7 @@ if __name__ == '__main__':
         rospy.wait_for_service('scenario')
         for i in range(len(scenario_parser.type_)):
             scenario_parser.send_scenarios(i)
-        print "Finish sending scenarios"
+        print("Finish sending scenarios")
         rospy.spin()
 
     except rospy.ROSInterruptException:
