@@ -25,6 +25,8 @@ class intersectionRecognition {
         intersectionRecognition();
         int SCAN_HZ;
         float distance_thresh;
+        double door_size_thresh;
+	std::vector<std::string> direction_name_;
         std::vector<intersection_recognition::BoundingBox> yolo_result_;
         void get_ros_param(void);
         intersection_recognition::Hypothesis generate_publish_variable(
@@ -35,10 +37,8 @@ class intersectionRecognition {
             const actionlib::SimpleClientGoalState& state,
             const intersection_recognition::BoundingBoxesResultConstPtr& result
         );
-        void actionActive() {
-	};
-	void actoinFeedback(const intersection_recognition::BoundingBoxesFeedbackConstPtr &) {
-	};
+        void actionActive() {};
+	void actoinFeedback(const intersection_recognition::BoundingBoxesFeedbackConstPtr &) {};
         void merge_yolo_result(
             int width, double scan_angle,
             float *distance_left, float *distance_center, float *distance_right, float *distance_back
@@ -59,7 +59,8 @@ class intersectionRecognition {
 };
 
 intersectionRecognition::intersectionRecognition() :
-    action_client_("yolov5_action", true)
+    action_client_("yolov5_action", true),
+    direction_name_({"left", "center", "right", "back"})
 {
     marker_pub_ = node_.advertise<visualization_msgs::MarkerArray>("visualization_markerarray", 1);
     hypothesis_pub_ = node_.advertise<intersection_recognition::Hypothesis>("hypothesis", 1);
@@ -68,12 +69,14 @@ intersectionRecognition::intersectionRecognition() :
     sync_.reset(new Sync(sync_policy_(10), scan_sub_, image_sub_));
     sync_->registerCallback(boost::bind(&intersectionRecognition::scanAndImageCallback, this, _1, _2));
 
+    bool server_exists = false;
+    while(!server_exists){
     ROS_INFO("waiting for server: ");
-    bool server_exists = action_client_.waitForServer(ros::Duration(5.0));
+    server_exists = action_client_.waitForServer(ros::Duration(5.0));
 
-    if (!server_exists) {
-        ROS_WARN("could not connect to server; halting");
-        return ;
+        if (!server_exists) {
+            ROS_WARN("could not connect to server; halting");
+        }
     }
     ROS_INFO("connected to action server");
 }
@@ -81,8 +84,10 @@ intersectionRecognition::intersectionRecognition() :
 void intersectionRecognition::get_ros_param(void){
     SCAN_HZ = 10;
     distance_thresh = 3.0;
+    door_size_thresh = 0.5;
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
     node_.getParam("extended_toe_finding/distance_thresh", distance_thresh);
+    node_.getParam("extended_toe_finding/door_size_thresh", door_size_thresh);
 }
 
 void intersectionRecognition::actionYoloCallback(const actionlib::SimpleClientGoalState& state,
@@ -108,13 +113,27 @@ void intersectionRecognition::merge_yolo_result(
     // back
     corridor_direction[3] = (scan_angle >= 0) ? M_PI + scan_angle - M_PI : M_PI + scan_angle + M_PI;
     corridor_distance[3] = distance_back;
-    std::cout << "check whether back angle is correct because it may be wrong" << std::endl;
 
     for(const auto obj : yolo_result_){
+        double obj_xmin, obj_xmax, tmp;
         if(obj.Class == "door"){
-            for(int i = 0; i < corridor_direction.size(); i++){
-                if(obj.xmin / width * M_PI < corridor_direction[i] < obj.xmax / width * M_PI){
-                    corridor_distance[i] = 0;
+            obj_xmin = 2 * M_PI - (double(obj.xmin) / width * 2 * M_PI);
+            obj_xmax = 2 * M_PI - (double(obj.xmax) / width * 2 * M_PI);
+            // exchange xmax for xmin
+            // because directions of each x-axis are different
+            // the direction of LiDAR is counterclockwise rotation
+            //     back -> right -> front -> left
+            // the direction of image is clockwise rotation
+            //     back -> left -> front -> right
+            tmp = obj_xmin;
+            obj_xmin = obj_xmax;
+            obj_xmax = tmp;
+            if(obj_xmax - obj_xmin > door_size_thresh){
+                for(int i = 0; i < corridor_direction.size(); i++){
+                    if(obj_xmin < corridor_direction[i] && corridor_direction[i] < obj_xmax){
+    		    std::cout << "Detect a door on the " << direction_name_[i] << std::endl;
+                        *corridor_distance[i] = 0;
+                    }
                 }
             }
         }
@@ -184,12 +203,10 @@ void intersectionRecognition::scanAndImageCallback(const sensor_msgs::LaserScan:
         return ;
     }
     else{
-        std::cout << "dist_left is " << distance_left << std::endl;
         intersectionRecognition::merge_yolo_result(
             image_msg->width, scan_angle,
             &distance_left, &distance_center, &distance_right, &distance_back
         );
-        std::cout << "dist_left is " << distance_left << "\n" << std::endl;
     }
 
 // publish hypothesis of intersection recognition
@@ -249,7 +266,7 @@ void intersectionRecognition::scanAndImageCallback(const sensor_msgs::LaserScan:
     double line_lifetime = 1 / static_cast<double>(SCAN_HZ);
 
     for(int i = 0; i < toe_index_list.size(); i++){
-        marker_line.markers[i].header.frame_id = "/base_link";
+        marker_line.markers[i].header.frame_id = "base_link";
         marker_line.markers[i].header.stamp = ros::Time::now();
         marker_line.markers[i].ns = "toe";
         marker_line.markers[i].id = i;
