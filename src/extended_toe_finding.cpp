@@ -146,7 +146,7 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     double line_lifetime = 1 / static_cast<double>(SCAN_HZ);
 
     for(int i = 0; i < toe_index_list.size(); i++){
-        marker_line.markers[i].header.frame_id = "/base_link";
+        marker_line.markers[i].header.frame_id = "base_link";
         marker_line.markers[i].header.stamp = ros::Time::now();
         marker_line.markers[i].ns = "toe";
         marker_line.markers[i].id = i;
