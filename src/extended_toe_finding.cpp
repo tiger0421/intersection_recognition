@@ -50,13 +50,13 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
 // skip inf
     int index_prev = 0;
     double last_scan = 0;
-    while(std::isinf(scan->ranges[index_prev]) && index_prev < num_scan) index_prev++;
+    while((std::isnan(scan->ranges[index_prev]) || std::isinf(scan->ranges[index_prev]) || scan->ranges[index_prev] > scan->range_max) && index_prev < num_scan) index_prev++;
     last_scan = scan->ranges[index_prev];
-    
+
     double scan_range;
-    for(int i = index_prev; i < num_scan; i ++) {
+    for(int i = 0; i < num_scan; i ++) {
         double angle = scan->angle_min + scan->angle_increment * i;
-        if(std::isinf(scan_range)){
+        if(std::isnan(scan->ranges[i]) || std::isinf(scan->ranges[i]) || scan->ranges[i] > scan->range_max){
             scan_range = last_scan;
         }
         else{
@@ -84,10 +84,10 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     int scan_right  = static_cast<int>((scan_angle - M_PI_2 - scan->angle_min) / scan->angle_increment + num_scan) % num_scan;
     int scan_back   = static_cast<int>((scan_angle - M_PI   - scan->angle_min) / scan->angle_increment + num_scan) % num_scan;
 
-    float distance_left = scan->ranges[scan_left];
-    float distance_center = scan->ranges[scan_center];
-    float distance_right = scan->ranges[scan_right];
-    float distance_back = scan->ranges[scan_back];
+    float distance_left = std::sqrt(x[scan_left]*x[scan_left] + y[scan_left]*y[scan_left]);
+    float distance_center = std::sqrt(x[scan_center]*x[scan_center] + y[scan_center]*y[scan_center]);
+    float distance_right = std::sqrt(x[scan_right]*x[scan_right] + y[scan_right]*y[scan_right]);
+    float distance_back = std::sqrt(x[scan_back]*x[scan_back] + y[scan_back]*y[scan_back]);
 
 // publish hypothesis of intersection recognition
     intersection_recognition::Hypothesis hypothesis;
