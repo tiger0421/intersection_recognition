@@ -1,0 +1,17 @@
+version: '3'
+services:
+  intersection_recognition_mecab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tiger0421/ros_intersection_recognition:noetic-arm
+    platform: linux/arm64/v8
+    container_name: mecab
+    tty: true
+    network_mode: "host"
+    volumes:
+      - ~/share:/root/share:rw
+      - ~/workspace/intersection_recognition:/root/catkin_ws/src/intersection_recognition:rw
+    working_dir: /root
+    command: /bin/bash
+
