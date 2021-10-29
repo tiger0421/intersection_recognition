@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile
     image: tiger0421/ros_intersection_recognition:latest
     container_name: ros-mecab
+    tty: true
     network_mode: "host"
     volumes:
       - ~/share:/root/share:rw
