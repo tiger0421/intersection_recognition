@@ -25,6 +25,7 @@ class intersectionRecognition {
         intersectionRecognition();
         int SCAN_HZ;
         float distance_thresh;
+        std::string robot_frame_;
         double door_size_thresh;
         std::vector<std::string> direction_name_;
         std::vector<intersection_recognition::BoundingBox> yolo_result_;
@@ -85,9 +86,11 @@ void intersectionRecognition::get_ros_param(void){
     SCAN_HZ = 10;
     distance_thresh = 3.0;
     door_size_thresh = 0.5;
+    robot_frame_ = "base_link"
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
     node_.getParam("extended_toe_finding/distance_thresh", distance_thresh);
     node_.getParam("extended_toe_finding/door_size_thresh", door_size_thresh);
+    node_.getParam("extended_toe_finding/robot_frame", robot_frame_);
 }
 
 void intersectionRecognition::actionYoloCallback(const actionlib::SimpleClientGoalState& state,
@@ -267,7 +270,7 @@ void intersectionRecognition::scanAndImageCallback(const sensor_msgs::LaserScan:
     double line_lifetime = 1 / static_cast<double>(SCAN_HZ);
 
     for(int i = 0; i < toe_index_list.size(); i++){
-        marker_line.markers[i].header.frame_id = "base_link";
+        marker_line.markers[i].header.frame_id = robot_frame_;
         marker_line.markers[i].header.stamp = ros::Time::now();
         marker_line.markers[i].ns = "toe";
         marker_line.markers[i].id = i;
@@ -284,10 +287,10 @@ void intersectionRecognition::scanAndImageCallback(const sensor_msgs::LaserScan:
         linear_end.x = range > 0.01 ? range : 30.0;
         linear_end.y = 0;
         linear_end.z = 0;
-    
-    if(std::isinf(linear_end.x)){
-        linear_end.x = 30.0;
-    }
+
+        if(std::isinf(linear_end.x)){
+            linear_end.x = 30.0;
+        }
 
         marker_line.markers[i].points.resize(2);
         marker_line.markers[i].points[0] = linear_start;

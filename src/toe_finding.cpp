@@ -18,6 +18,7 @@ class intersectionRecognition {
         float epsilon1;
         float epsilon2;
         float epsilon3;
+        std::string robot_frame_;
         void get_ros_param(void);
         void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
 
@@ -37,12 +38,14 @@ void intersectionRecognition::get_ros_param(void){
     off_set = 10;
     epsilon1 = 0.25;
     epsilon3 = 0.8;
+    robot_frame_ = "base_link"
 
     sleep(1);
     node_.getParam("toe_finding/scan_hz", hz);
     node_.getParam("toe_finding/scan_off_set", off_set);
     node_.getParam("toe_finding/epsilon1", epsilon1);
     node_.getParam("toe_finding/epsilon3", epsilon3);
+    node_.getParam("toe_finding/robot_frame", robot_frame_);
 }
 
 void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
@@ -149,7 +152,7 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     double line_lifetime = 1 / static_cast<double>(hz);
 
     for(int i = 0; i < toe_index_list.size(); i++){
-        marker_line.markers[i].header.frame_id = "/base_link";
+        marker_line.markers[i].header.frame_id = robot_frame_;
         marker_line.markers[i].header.stamp = ros::Time::now();
         marker_line.markers[i].ns = "toe";
         marker_line.markers[i].id = i;

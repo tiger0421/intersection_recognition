@@ -16,6 +16,7 @@ class intersectionRecognition {
         intersectionRecognition();
         int SCAN_HZ;
         float distance_thresh;
+        std::string robot_frame_;
         void get_ros_param(void);
         intersection_recognition::Hypothesis generate_publish_variable(bool center_flg, bool back_flg, bool left_flg, bool right_flg, 
                                                                         int center_angle, int back_angle, int left_angle, int right_angle);
@@ -37,8 +38,10 @@ intersectionRecognition::intersectionRecognition(){
 void intersectionRecognition::get_ros_param(void){
     SCAN_HZ = 10;
     distance_thresh = 3.0;
+    robot_frame_ = "base_link"
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
     node_.getParam("extended_toe_finding/distance_thresh", distance_thresh);
+    node_.getParam("extended_toe_finding/robot_frame", robot_frame_);
 }
 
 void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
@@ -146,7 +149,7 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     double line_lifetime = 1 / static_cast<double>(SCAN_HZ);
 
     for(int i = 0; i < toe_index_list.size(); i++){
-        marker_line.markers[i].header.frame_id = "base_link";
+        marker_line.markers[i].header.frame_id = robot_frame_;
         marker_line.markers[i].header.stamp = ros::Time::now();
         marker_line.markers[i].ns = "toe";
         marker_line.markers[i].id = i;
@@ -163,7 +166,7 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
         linear_end.x = range > 0.01 ? range : 30.0;
         linear_end.y = 0;
         linear_end.z = 0;
-    
+
     if(std::isinf(linear_end.x)){
         linear_end.x = 30.0;
     }
