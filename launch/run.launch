@@ -3,6 +3,7 @@
     <remap from="scan" to="vel_scan" />
     <param name="SCAN_HZ" value="10"/>
     <param name="distance_thresh" value="3.0"/>
+    <param name="robot_frame" value="base_link"/>
   </node>
 
   <node name="scenario_executor" pkg="intersection_recognition" type="scenario_executor" output="screen" />
