@@ -38,7 +38,7 @@ intersectionRecognition::intersectionRecognition(){
 void intersectionRecognition::get_ros_param(void){
     SCAN_HZ = 10;
     distance_thresh = 3.0;
-    robot_frame_ = "base_link"
+    robot_frame_ = "base_link";
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
     node_.getParam("extended_toe_finding/distance_thresh", distance_thresh);
     node_.getParam("extended_toe_finding/robot_frame", robot_frame_);

@@ -38,7 +38,7 @@ void intersectionRecognition::get_ros_param(void){
     off_set = 10;
     epsilon1 = 0.25;
     epsilon3 = 0.8;
-    robot_frame_ = "base_link"
+    robot_frame_ = "base_link";
 
     sleep(1);
     node_.getParam("toe_finding/scan_hz", hz);
