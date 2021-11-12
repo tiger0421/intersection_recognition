@@ -76,10 +76,10 @@ void cmdVelController::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
     if(! emergency_stop_flg_){
         if(turn_flg_){
         // rotate_rad += imu_data->angular_velocity.z[rad/sec] * (1/IMU_HZ)[sec]
-            rotate_rad_ += imu_data->angular_velocity.z/IMU_HZ;
+            rotate_rad_ += imu_data->angular_velocity.z / IMU_HZ;
         // 3.14/180 means 1[rad]
-        std::cout << "rotate rad is " << rotate_rad_ << std::endl;
-        std::cout << "target - current is " <<  -(target_yaw_rad_ - current_yaw_rad_) << std::endl;
+            std::cout << "rotate rad is " << rotate_rad_ << std::endl;
+            std::cout << "target - current is " <<  -(target_yaw_rad_ - current_yaw_rad_) << std::endl;
             if(std::abs(rotate_rad_) < 3.14/180){
                 turn_flg_ = false;
                 std_msgs::Bool turn_finish_flg_for_pub;
@@ -105,8 +105,6 @@ void cmdVelController::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
             vel_.linear.x = 0.55;
         // vel_.angular.z = (target_yaw_rad_ - current_yaw_rad_)[rad] * (1/IMU_HZ)[sec]
             vel_.angular.z = -(target_yaw_rad_ - current_yaw_rad_) * reverse_turn;
-//            vel_.angular.z = 0.0;
-//            vel_.angular.z = (target_yaw_rad_ - current_yaw_rad_) / IMU_HZ * reverse_turn;
             cmd_vel_pub_.publish(vel_);
             vel_.linear.x = 0.0;
         }

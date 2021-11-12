@@ -168,7 +168,7 @@ void cmdVelController::loadNextScenario(void){
         change_node_flg_ = false;
         if(action.find("turn") != std::string::npos){
             turn_flg_ = true;
-            
+
             //if(action.find("left")){
             if(action == "turn_left"){
                 rotate_rad_for_pub_.data = M_PI_2;
