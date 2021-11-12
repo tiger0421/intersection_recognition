@@ -116,7 +116,8 @@ void intersectionRecognition::merge_yolo_result(
 
     for(const auto obj : yolo_result_){
         double obj_xmin, obj_xmax, tmp;
-        if(obj.Class == "door"){
+        if((obj.Class == "door") || (obj.Class.find("end") != std::string::npos)){
+            std::cout << "check whether end is detected" << std::endl;
             obj_xmin = 2 * M_PI - (double(obj.xmin) / width * 2 * M_PI);
             obj_xmax = 2 * M_PI - (double(obj.xmax) / width * 2 * M_PI);
             // exchange xmax for xmin
