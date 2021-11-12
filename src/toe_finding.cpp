@@ -49,30 +49,51 @@ void intersectionRecognition::get_ros_param(void){
 }
 
 void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
+    int num_scan = scan->ranges.size();
+    std::vector<double> scan_cp(num_scan);
+    std::copy(scan->ranges.begin(), scan->ranges.end(), scan_cp.begin());
+// skip inf
+    int index_prev = 0;
+    double last_scan = 0;
+    while((std::isnan(scan_cp[index_prev]) || std::isinf(scan_cp[index_prev]) || scan_cp[index_prev] > scan->range_max) && index_prev < num_scan) index_prev++;
+    last_scan = scan_cp[index_prev];
+
+    double scan_range;
+    for(int i = 0; i < num_scan; i ++) {
+        if(std::isnan(scan_cp[i]) || std::isinf(scan_cp[i]) || scan_cp[i] > scan->range_max){
+            scan_range = last_scan;
+            scan_cp[i] = last_scan;
+        }
+        else{
+            scan_range = scan_cp[i];
+            last_scan = scan_cp[i];
+        }
+    }
+
     float delta_h, delta_i, delta_j;
     std::vector<int> toe_index_list;
-    int num_cloud = scan->ranges.size();
-    float delta_max = 0.001;
+    int num_cloud = scan_cp.size();
+    double delta_max = 0.001;
 
 // add all peaks to list
     for(int i = 0; i < num_cloud; i += off_set){
-        delta_h = scan->ranges[(i - off_set + num_cloud) % num_cloud];
-        delta_i = scan->ranges[i];
-        delta_j = scan->ranges[(i + off_set) % num_cloud];
+        delta_h = scan_cp[(i - off_set + num_cloud) % num_cloud];
+        delta_i = scan_cp[i];
+        delta_j = scan_cp[(i + off_set) % num_cloud];
 
         if((delta_i > delta_h) && (delta_i > delta_j)){
             toe_index_list.push_back(i);
-            delta_max = std::max(delta_max, scan->ranges[i]);
+            delta_max = std::max(delta_max, scan_cp[i]);
         }
     }
 
 // remove peak
-    float scan_avg = std::accumulate(scan->ranges.begin(), scan->ranges.end(), 0.0) / scan->ranges.size();
+    float scan_avg = std::accumulate(scan_cp.begin(), scan_cp.end(), 0.0) / scan_cp.size();
     int index = 0;
     std::vector<int>::iterator it = toe_index_list.begin();
 
     while(it != toe_index_list.end()){
-        if((scan->ranges[*it] < scan_avg) || (scan->ranges[*it]/delta_max < this->epsilon1)){
+        if((scan_cp[*it] < scan_avg) || (scan_cp[*it]/delta_max < this->epsilon1)){
             toe_index_list.erase(it);
         }
         else{
@@ -81,15 +102,15 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     }
 
 // merge peaks
-    epsilon2 = scan->ranges.size() / 8;
+    epsilon2 = scan_cp.size() / 8;
     it = toe_index_list.begin();
-    int index_prev = 0;
+    index_prev = 0;
     for(int j = 0; j < toe_index_list.size();){
         if(toe_index_list.size() <= 1) break;
         index = *(it + j);
         index_prev = *(it + ((j - 1 + toe_index_list.size()) % toe_index_list.size()));
         if(abs(index - index_prev) < epsilon2){
-            if(scan->ranges[index] > scan->ranges[index_prev]){
+            if(scan_cp[index] > scan_cp[index_prev]){
                 toe_index_list.erase(it + (j-1+toe_index_list.size())%toe_index_list.size());
             }
             else{
@@ -103,18 +124,18 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
 
 // remove peak with epsilon3
     float delta_avg = 0;
-    
+
 // remove unimportant valley between toe_index_list[-1] and toe_index_list[0]
     if(toe_index_list.size() > 1){
-        auto scan_iter_begin = std::next(scan->ranges.begin(), toe_index_list[0]);
-        auto scan_iter_end = std::next(scan->ranges.begin(), toe_index_list.back());
+        auto scan_iter_begin = std::next(scan_cp.begin(), toe_index_list[0]);
+        auto scan_iter_end = std::next(scan_cp.begin(), toe_index_list.back());
 
-        delta_avg = std::accumulate(scan_iter_end, scan->ranges.end(), 0);
-        delta_avg += std::accumulate(scan->ranges.begin(), scan_iter_begin, 0);
-        delta_avg /= (scan->ranges.size() - toe_index_list.back()) + toe_index_list[0] + 1;
+        delta_avg = std::accumulate(scan_iter_end, scan_cp.end(), 0);
+        delta_avg += std::accumulate(scan_cp.begin(), scan_iter_begin, 0);
+        delta_avg /= (scan_cp.size() - toe_index_list.back()) + toe_index_list[0] + 1;
 
-        if((2*delta_avg/(scan->ranges[toe_index_list.back()] + scan->ranges[toe_index_list[0]])) > epsilon3){
-            if(scan->ranges[toe_index_list[0]] < scan->ranges[toe_index_list.back()]){
+        if((2*delta_avg/(scan_cp[toe_index_list.back()] + scan_cp[toe_index_list[0]])) > epsilon3){
+            if(scan_cp[toe_index_list[0]] < scan_cp[toe_index_list.back()]){
                 toe_index_list.erase(toe_index_list.begin());
             }
             else{
@@ -123,10 +144,10 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
         }
 // remove unimportant valley
         for(int i=0; i < toe_index_list.size()-1;){
-            scan_iter_begin = std::next(scan->ranges.begin(), toe_index_list[i]);
-            scan_iter_end = std::next(scan->ranges.begin(), toe_index_list[i+1]);
-            if(2*delta_avg/(scan->ranges[toe_index_list[i]] + scan->ranges[toe_index_list[i+1]]) > epsilon3){
-                if(scan->ranges[toe_index_list[i]] < scan->ranges[toe_index_list[i+1]]){
+            scan_iter_begin = std::next(scan_cp.begin(), toe_index_list[i]);
+            scan_iter_end = std::next(scan_cp.begin(), toe_index_list[i+1]);
+            if(2*delta_avg/(scan_cp[toe_index_list[i]] + scan_cp[toe_index_list[i+1]]) > epsilon3){
+                if(scan_cp[toe_index_list[i]] < scan_cp[toe_index_list[i+1]]){
                     toe_index_list.erase(toe_index_list.begin() + i);
                 }
                 else{
@@ -161,7 +182,7 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
         marker_line.markers[i].type = visualization_msgs::Marker::LINE_LIST;
         marker_line.markers[i].action = visualization_msgs::Marker::ADD;
 
-        linear_end.x = scan->ranges[toe_index_list[i]];
+        linear_end.x = scan_cp[toe_index_list[i]];
         linear_end.y = 0;
         linear_end.z = 0;
 

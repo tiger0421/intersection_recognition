@@ -49,22 +49,25 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     std::vector<double> x(num_scan), y(num_scan);
     std::vector<int> angle_bin(90);
     std::vector<int> toe_index_list;
+    std::vector<double> scan_cp(num_scan);
+    std::copy(scan->ranges.begin(), scan->ranges.end(), scan_cp.begin());
 
 // skip inf
     int index_prev = 0;
     double last_scan = 0;
-    while((std::isnan(scan->ranges[index_prev]) || std::isinf(scan->ranges[index_prev]) || scan->ranges[index_prev] > scan->range_max) && index_prev < num_scan) index_prev++;
-    last_scan = scan->ranges[index_prev];
+    while((std::isnan(scan_cp[index_prev]) || std::isinf(scan_cp[index_prev]) || scan_cp[index_prev] > scan->range_max) && index_prev < num_scan) index_prev++;
+    last_scan = scan_cp[index_prev];
 
     double scan_range;
     for(int i = 0; i < num_scan; i ++) {
         double angle = scan->angle_min + scan->angle_increment * i;
-        if(std::isnan(scan->ranges[i]) || std::isinf(scan->ranges[i]) || scan->ranges[i] > scan->range_max){
+        if(std::isnan(scan_cp[i]) || std::isinf(scan_cp[i]) || scan_cp[i] > scan->range_max){
             scan_range = last_scan;
+            scan_cp[i] = last_scan;
         }
         else{
-            scan_range = scan->ranges[i];
-            last_scan = scan->ranges[i];
+            scan_range = scan_cp[i];
+            last_scan = scan_cp[i];
         }
         x[i] = scan_range * cos(angle);
         y[i] = scan_range * sin(angle);
@@ -162,14 +165,10 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
         linear_start.y = 0;
         linear_start.z = 0;
 
-        double range = scan->ranges[toe_index_list[i]];
-        linear_end.x = range > 0.01 ? range : 30.0;
+        double range = scan_cp[toe_index_list[i]];
+        linear_end.x = range;
         linear_end.y = 0;
         linear_end.z = 0;
-
-    if(std::isinf(linear_end.x)){
-        linear_end.x = 30.0;
-    }
 
         marker_line.markers[i].points.resize(2);
         marker_line.markers[i].points[0] = linear_start;
