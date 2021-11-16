@@ -88,7 +88,7 @@ void cmdVelController::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
                 rotate_rad_ = 0;
             }
 
-// if rotate_rad = 0, do nothing because it is turn_flg is false.
+        // if rotate_rad = 0, do nothing because it is turn_flg is false.
             if(rotate_rad_ < 0){
                 vel_.angular.z = -0.5;
             }
@@ -117,7 +117,7 @@ void cmdVelController::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
 }
 
 void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
-    std::vector<double> scan_copy(scan->ranges.size());
+    std::vector<float> scan_copy(scan->ranges.size());
     std::copy(scan->ranges.begin(), scan->ranges.end(), scan_copy.begin());
     for(int i=0; i<scan->ranges.size(); i++){
         if(scan_copy[i] <= scan->range_min){
