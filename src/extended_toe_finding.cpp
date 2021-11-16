@@ -18,8 +18,9 @@ class intersectionRecognition {
         float distance_thresh;
         std::string robot_frame_;
         void get_ros_param(void);
-        intersection_recognition::Hypothesis generate_publish_variable(bool center_flg, bool back_flg, bool left_flg, bool right_flg, 
+        intersection_recognition::Hypothesis generate_publish_variable(bool center_flg, bool back_flg, bool left_flg, bool right_flg,
                                                                         int center_angle, int back_angle, int left_angle, int right_angle);
+        float updateDistanceThresh(std::vector<float> scan);
         void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
 
     private:
@@ -31,17 +32,19 @@ class intersectionRecognition {
 
 intersectionRecognition::intersectionRecognition(){
     scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("/scan", 1, &intersectionRecognition::scanCallback, this);
-    marker_pub_ = node_.advertise<visualization_msgs::MarkerArray>("visualization_markerarray", 1);
+    marker_pub_ = node_.advertise<visualization_msgs::MarkerArray>("corridor_visualization", 1);
     hypothesis_pub_ = node_.advertise<intersection_recognition::Hypothesis>("hypothesis", 1);
 }
 
 void intersectionRecognition::get_ros_param(void){
     SCAN_HZ = 10;
-    distance_thresh = 3.0;
     robot_frame_ = "base_link";
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
-    node_.getParam("extended_toe_finding/distance_thresh", distance_thresh);
     node_.getParam("extended_toe_finding/robot_frame", robot_frame_);
+}
+
+float intersectionRecognition::updateDistanceThresh(std::vector<float> scan){
+    return std::accumulate(scan.begin(), scan.end(), 0.0) / scan.size();
 }
 
 void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
@@ -49,7 +52,7 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     std::vector<double> x(num_scan), y(num_scan);
     std::vector<int> angle_bin(90);
     std::vector<int> toe_index_list;
-    std::vector<double> scan_cp(num_scan);
+    std::vector<float> scan_cp(num_scan);
     std::copy(scan->ranges.begin(), scan->ranges.end(), scan_cp.begin());
 
 // skip inf
@@ -96,6 +99,7 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     float distance_back = std::sqrt(x[scan_back]*x[scan_back] + y[scan_back]*y[scan_back]);
 
 // publish hypothesis of intersection recognition
+    distance_thresh = updateDistanceThresh(scan_cp);
     intersection_recognition::Hypothesis hypothesis;
     if(distance_left > distance_thresh){
         if (scan_left >= 0){

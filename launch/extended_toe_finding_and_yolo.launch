@@ -4,7 +4,6 @@
     <remap from="scan"            to="merged_scan"/>
     <remap from="image_rae"       to="image/mercator"/>
     <param name="SCAN_HZ"         value="10"/>
-    <param name="distance_thresh" value="3.0"/>
     <param name="door_size_thresh" value="0.5"/>
   </node>
   <node name="rviz" pkg="rviz" type="rviz" />
