@@ -182,8 +182,8 @@ void cmdVelController::loadNextScenario(void){
             else{
                 rotate_rad_for_pub_.data = M_PI;
             }
-            rotate_rad_pub_.publish(rotate_rad_for_pub_);
         }
+        rotate_rad_pub_.publish(rotate_rad_for_pub_);
     }
 }
 
@@ -213,8 +213,8 @@ void cmdVelController::hypothesisCallback(const intersection_recognition::Hypoth
             updateLastNode(hypothesis->center_flg, hypothesis->back_flg, hypothesis->left_flg, hypothesis->right_flg);
             request_update_last_node_flg = false;
         }
-        if(change_node_flg_){
-            if(! turn_flg_){
+        if(! turn_flg_){
+            if(change_node_flg_){
                 satisfy_conditions_flg_ = compareScenarioAndHypothesis(hypothesis);
                 if(satisfy_conditions_flg_){
                     ROS_INFO("find target node");
@@ -237,9 +237,7 @@ void cmdVelController::hypothesisCallback(const intersection_recognition::Hypoth
                     reach_target_type_cnt_ = 0;
                 }
             }
-        }
-        else{
-            if(! turn_flg_){
+            else{
                 if(! compareLastNodeAndCurrentNode(hypothesis)){
                     reach_different_type_cnt_++;
                     if(reach_different_type_cnt_margin_ <= reach_different_type_cnt_){
@@ -252,12 +250,9 @@ void cmdVelController::hypothesisCallback(const intersection_recognition::Hypoth
                     reach_different_type_cnt_ = 0;
                 }
             }
-        }
-
-        if(! turn_flg_){
             rotate_rad_for_pub_.data = 0.00;
-            rotate_rad_pub_.publish(rotate_rad_for_pub_);
         }
+        rotate_rad_pub_.publish(rotate_rad_for_pub_);
     }
 }
 
