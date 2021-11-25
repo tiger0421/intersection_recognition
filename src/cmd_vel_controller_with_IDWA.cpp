@@ -152,7 +152,7 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
                 double next_v_max = std::min(v_max, vel_.linear.x + v_acc_max);
                 double next_v_min = std::max(v_min, vel_.linear.x - v_acc_max);
                 double next_w_max = std::min(w_max, vel_.angular.z + ang_acc_max);
-                double next_w_min = std::max(w_max, vel_.angular.z - ang_acc_max);
+                double next_w_min = std::max(w_min, vel_.angular.z - ang_acc_max);
                 int v_range_size  = std::round((next_v_max - next_v_min) / delta_v) + 1;
                 int w_range_size  = std::round((next_w_max - next_w_min) / delta_w) + 1;
 
@@ -166,7 +166,7 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
                 G_v = minMaxNormalize(G_v);
                 // about angular velocity
                 vec_one = Eigen::VectorXd::Ones(w_range.size());
-                mat_one = Eigen::MatrixXd::Ones(w_range.size(), v_range.size());
+                //mat_one = Eigen::MatrixXd::Ones(w_range.size(), v_range.size());
                 Eigen::MatrixXd G_w = mat_one * (vec_one - ((w_range - wi * vec_one).cwiseAbs() / (2 * w_max))).asDiagonal();
                 G_w = minMaxNormalize(G_w);
                 // about distance to obstacles
