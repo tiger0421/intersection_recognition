@@ -131,6 +131,7 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  "/usr/include/eigen3"
 )
 
 ## Declare a C++ library
@@ -227,6 +228,16 @@ target_link_libraries(
   cmd_vel_controller
   ${catkin_LIBRARIES}
 )
+
+add_executable(cmd_vel_controller_with_IDWA
+    src/cmd_vel_controller_with_IDWA.cpp
+)
+add_dependencies(cmd_vel_controller_with_IDWA intersection_recognition_generate_messages_cpp)
+target_link_libraries(
+  cmd_vel_controller_with_IDWA
+  ${catkin_LIBRARIES}
+)
+
 
 add_executable(toe_finding
     src/toe_finding.cpp
