@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="cmd_vel_controller" pkg="intersection_recognition" type="cmd_vel_controller_with_IDWA" output="screen" >
+    <remap from="cmd_vel" to="diff_bot/cmd_vel" />
+    <remap from="scan" to="diff_bot/scan" />
+    <remap from="imu_data" to="diff_bot/imu/data" />
+    <param name="IMU_HZ" value="67.0"/>
+    <param name="robot_control_freq" value="10.0"/>
+    <param name="path_update_freq" value="2.0"/>
+    <param name="v_max" value="2.0"/>
+    <param name="v_min" value="-2.0"/>
+    <param name="v_acc_max" value="0.5"/>
+    <param name="delta_v" value="0.05"/>
+    <param name="w_max" value="0.5"/>
+    <param name="w_min" value="-0.5"/>
+    <param name="ang_acc_max" value="0.2"/>
+    <param name="delta_w" value="0.05"/>
+    <param name="k_rho" value="3.0"/>
+    <param name="k_alpha" value="0.59"/>
+    <param name="k_v" value="1.0"/>
+    <param name="lambda1" value="3/13"/>
+    <param name="lambda2" value="3/13"/>
+    <param name="lambda3" value="7/13"/>
+    <param name="reverse_turn" value="-1.0"/>
+  </node>
+
+<!--
+  <node name="emergency_stop" pkg="intersection_recognition" type="simple_emergency_stop" output="screen" >
+    <param name="stop_distance_thresh" value="0.2"/>
+  </node>
+-->
+
+</launch>
