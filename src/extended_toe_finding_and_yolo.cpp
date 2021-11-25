@@ -160,7 +160,7 @@ void intersectionRecognition::scanAndImageCallback(const sensor_msgs::LaserScan:
     std::vector<double> x(num_scan), y(num_scan);
     std::vector<int> angle_bin(90);
     std::vector<int> toe_index_list;
-    std::vector<double> scan_cp(num_scan);
+    std::vector<float> scan_cp(num_scan);
     std::copy(scan->ranges.begin(), scan->ranges.end(), scan_cp.begin());
 
 // skip inf
