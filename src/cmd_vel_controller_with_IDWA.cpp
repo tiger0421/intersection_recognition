@@ -20,13 +20,13 @@ class cmdVelController {
         double robot_control_freq = 10.0;
         double path_update_freq = 2.0;
         double ROBOT_COLLISION_RADIUS = 0.5;
-        double v_max = 2.0;
-        double v_min = -2.0;
+        double v_max_lim = 2.0;
+        double v_min_lim = -2.0;
         double v_acc_max = 0.5;
         double delta_v = 0.05;
-        double w_max = 0.5;
-        double w_min = -0.5;
-        double ang_acc_max = 0.2;
+        double w_max_lim = 0.5;
+        double w_min_lim = -0.5;
+        double w_acc_max = 0.2;
         double delta_w = 0.05;
         double k_rho = 3.0;
         double k_alpha = 0.59;
@@ -36,7 +36,6 @@ class cmdVelController {
         double lambda3 = 7/13;
         float reverse_turn = 1.0;
         float rotate_rad_ = 0;
-        std::vector<double> target_point_;
         void getRosParam(void);
         void imuCallback(const sensor_msgs::Imu::ConstPtr& imu_data);
         void turnRadCallback(const std_msgs::Float32::ConstPtr& turn_rad);
@@ -77,20 +76,21 @@ cmdVelController::cmdVelController(){
     getRosParam();
     timer_for_cmd_vel = node_.createTimer(ros::Duration(1.0/robot_control_freq), &cmdVelController::timerForCmdVelCallback, this);
     timer_for_dwa = node_.createTimer(ros::Duration(1.0/path_update_freq), &cmdVelController::timerForDWACallback, this);
-    target_point_ = {0, 0};
 }
 
 void cmdVelController::getRosParam(void){
     node_.getParam("cmd_vel_controller/IMU_HZ", IMU_HZ);
     node_.getParam("cmd_vel_controller/robot_control_freq", robot_control_freq);
+    node_.getParam("cmd_vel_controller/path_update_freq", path_update_freq);
+    node_.getParam("cmd_vel_controller/ROBOT_COLLISION_RADIUS", ROBOT_COLLISION_RADIUS);
     node_.getParam("cmd_vel_controller/reverse_turn", reverse_turn);
-    node_.getParam("cmd_vel_controller/v_max", v_max);
-    node_.getParam("cmd_vel_controller/v_min", v_min);
+    node_.getParam("cmd_vel_controller/v_max_lim", v_max_lim);
+    node_.getParam("cmd_vel_controller/v_min_lim", v_min_lim);
     node_.getParam("cmd_vel_controller/v_acc_max", v_acc_max);
     node_.getParam("cmd_vel_controller/delta_v", delta_v);
-    node_.getParam("cmd_vel_controller/w_max", w_max);
-    node_.getParam("cmd_vel_controller/w_min", w_min);
-    node_.getParam("cmd_vel_controller/v_acc_max", v_acc_max);
+    node_.getParam("cmd_vel_controller/w_max_lim", w_max_lim);
+    node_.getParam("cmd_vel_controller/w_min_lim", w_min_lim);
+    node_.getParam("cmd_vel_controller/w_acc_max", w_acc_max);
     node_.getParam("cmd_vel_controller/k_rho", k_rho);
     node_.getParam("cmd_vel_controller/k_alpha", k_alpha);
     node_.getParam("cmd_vel_controller/k_v", k_v);
@@ -138,21 +138,17 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
     if(! emergency_stop_flg_){
         if(update_path_flg_){
             if(!turn_flg_){
-                // for debug
                 double rho = 5.0;   // [m]
-                double alpha = 0.0; // [rad]
-                // debug end
-                target_point_ = {rho, alpha};
-
+                double alpha = target_yaw_rad_ - current_yaw_rad_; // [rad]
                 // calculate ideal control
-                double vi = k_v * v_max * std::cos(alpha) * std::tanh(rho / k_rho);
-                double wi = k_alpha * alpha + k_v * v_max * std::tanh(rho / k_rho) / rho * std::sin(2.0 * alpha) / 2.0;
+                double vi = k_v * v_max_lim * std::cos(alpha) * std::tanh(rho / k_rho);
+                double wi = k_alpha * alpha + k_v * v_max_lim * std::tanh(rho / k_rho) / rho * std::sin(2.0 * alpha) / 2.0;
 
                 // calculate dynamic window
-                double next_v_max = std::min(v_max, vel_.linear.x + v_acc_max);
-                double next_v_min = std::max(v_min, vel_.linear.x - v_acc_max);
-                double next_w_max = std::min(w_max, vel_.angular.z + ang_acc_max);
-                double next_w_min = std::max(w_min, vel_.angular.z - ang_acc_max);
+                double next_v_max = std::min(v_max_lim, vel_.linear.x + v_acc_max / path_update_freq);
+                double next_v_min = std::max(v_min_lim, vel_.linear.x - v_acc_max / path_update_freq);
+                double next_w_max = std::min(w_max_lim, vel_.angular.z + w_acc_max / path_update_freq);
+                double next_w_min = std::max(w_min_lim, vel_.angular.z - w_acc_max / path_update_freq);
                 int v_range_size  = std::round((next_v_max - next_v_min) / delta_v) + 1;
                 int w_range_size  = std::round((next_w_max - next_w_min) / delta_w) + 1;
 
@@ -162,12 +158,12 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
                 // about velocity
                 Eigen::MatrixXd mat_one = Eigen::MatrixXd::Ones(v_range.size(), w_range.size());
                 Eigen::VectorXd vec_one = Eigen::VectorXd::Ones(v_range.size());
-                Eigen::MatrixXd G_v = (vec_one - ((v_range - vi * vec_one).cwiseAbs() / (2 * v_max))).asDiagonal() * mat_one;
+                Eigen::MatrixXd G_v = (vec_one - ((v_range - vi * vec_one).cwiseAbs() / (2 * v_max_lim))).asDiagonal() * mat_one;
                 G_v = minMaxNormalize(G_v);
                 // about angular velocity
                 vec_one = Eigen::VectorXd::Ones(w_range.size());
                 //mat_one = Eigen::MatrixXd::Ones(w_range.size(), v_range.size());
-                Eigen::MatrixXd G_w = mat_one * (vec_one - ((w_range - wi * vec_one).cwiseAbs() / (2 * w_max))).asDiagonal();
+                Eigen::MatrixXd G_w = mat_one * (vec_one - ((w_range - wi * vec_one).cwiseAbs() / (2 * w_max_lim))).asDiagonal();
                 G_w = minMaxNormalize(G_w);
                 // about distance to obstacles
                 Eigen::MatrixXd min_distance = calcDistance(scan, v_range, w_range);
@@ -175,11 +171,30 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
                 G_dist = minMaxNormalize(G_dist);
                 // merge variables
                 Eigen::MatrixXd G = lambda1 * G_v + lambda2 * G_w + lambda3 * G_dist;
+                G -= (min_distance.array() < ROBOT_COLLISION_RADIUS).matrix().cast<double>() * 1000.0;
+                bool collision_flg = false;
+                if((G.array()<-500.0).count() > G.size() / 2){
+                    collision_flg = true;
+                }
                 // get a pair of velocity and angle velocity which takes highest score
                 Eigen::MatrixXd::Index maxRow, maxCol;
-                double max_distance = min_distance.maxCoeff(&maxRow, &maxCol);
+                double max_distance = G.maxCoeff(&maxRow, &maxCol);
                 vel_.linear.x = v_range(maxRow);
+                if(collision_flg){
+                    if(vel_.linear.x > v_max_lim * 0.6){
+                        std::cout << "supressed" << std::endl;
+                        vel_.linear.x = v_max_lim * 0.6;
+                    }
+                    else if(vel_.linear.x < v_min_lim * 0.6){
+                        std::cout << "supressed" << std::endl;
+                        vel_.linear.x = v_min_lim * 0.6;
+                    }
+                }
                 vel_.angular.z = w_range(maxCol);
+                std::cout << "alpha(target direction) " << alpha << std::endl;
+                std::cout << "selected v is " << vel_.linear.x << std::endl;
+                std::cout << "selected w is " << vel_.angular.z << "\n" << std::endl;
+
             }
         }
     }
@@ -212,19 +227,19 @@ Eigen::MatrixXd cmdVelController::calcDistance(const sensor_msgs::LaserScan::Con
     Eigen::MatrixXd state_y(v_range.size(), scan_direction.size());
     Eigen::MatrixXd min_distance = Eigen::MatrixXd::Ones(v_range.size(), w_range.size()) * 1000.0;
     // calculate obstacle point
-    auto sin_vector = scan_direction.array().sin().matrix();
-    auto cos_vector = scan_direction.array().cos().matrix();
+    auto sin_vector = (scan_direction.array() + M_PI_2).sin().matrix();
+    auto cos_vector = (scan_direction.array() + M_PI_2).cos().matrix();
     obs_point << cos_vector.asDiagonal() * scan_cp_eigen, sin_vector.asDiagonal() * scan_cp_eigen;
-    state_x = v_range.asDiagonal() * vec_one * w_range.array().cos().matrix().asDiagonal();
-    state_y = v_range.asDiagonal() * vec_one * w_range.array().sin().matrix().asDiagonal();
+
+    state_x = v_range.asDiagonal() * vec_one * (w_range.array() + M_PI_2).cos().matrix().asDiagonal();
+    state_y = v_range.asDiagonal() * vec_one * (w_range.array() + M_PI_2).sin().matrix().asDiagonal();
     // calculate distance to obstacle
     for(int j = 0; j < scan_direction.size(); j++){
         auto distance_x = state_x.array() - obs_point.leftCols(1)(j);
-        auto distance_y = state_y.array() - obs_point.leftCols(2)(j);
+        auto distance_y = state_y.array() - obs_point.rightCols(1)(j);
         Eigen::MatrixXd distance = (distance_x.array().pow(2) + distance_y.array().pow(2)).sqrt();
         min_distance = min_distance.cwiseMin(distance);
     }
-    min_distance -= (min_distance.array() < ROBOT_COLLISION_RADIUS).matrix().cast<double>() * 1000.0;
     return min_distance;
 }
 
