@@ -121,26 +121,38 @@ void intersectionRecognition::merge_yolo_result(
     corridor_distance[3] = distance_back;
 
     for(const auto obj : yolo_result_){
-        double obj_xmin, obj_xmax, tmp;
-        if((obj.Class == "door") || (obj.Class.find("end") != std::string::npos)){
+        if((obj.Class == "door") || obj.Class == "square" || (obj.Class.find("end") != std::string::npos)){
             std::cout << "check whether end is detected" << std::endl;
-            obj_xmin = 2 * M_PI - (double(obj.xmin) / width * 2 * M_PI);
-            obj_xmax = 2 * M_PI - (double(obj.xmax) / width * 2 * M_PI);
-            // exchange xmax for xmin
-            // because directions of each x-axis are different
-            // the direction of LiDAR is counterclockwise rotation
-            //     back -> right -> front -> left
-            // the direction of image is clockwise rotation
-            //     back -> left -> front -> right
-            tmp = obj_xmin;
-            obj_xmin = obj_xmax;
-            obj_xmax = tmp;
+            double obj_xmin = 2 * M_PI - (double(obj.xmin) / width * 2 * M_PI);
+            double obj_xmax = 2 * M_PI - (double(obj.xmax) / width * 2 * M_PI);
+            /*
+              exchange xmax for xmin
+              because directions of each x-axis are different
+              the direction of LiDAR is counterclockwise rotation
+                  back -> right -> front -> left
+              the direction of image is clockwise rotation
+                  back -> left -> front -> right
+            */
+            std::swap(obj_xmin, obj_xmax);
             if(obj_xmax - obj_xmin > door_size_thresh){
                 for(int i = 0; i < corridor_direction.size(); i++){
                     if(obj_xmin < corridor_direction[i] && corridor_direction[i] < obj_xmax){
-                        std::cout << "Detect a door on the " << direction_name_[i] << std::endl;
+                        std::cout << "Detect a "<< obj.Class <<" on the " << direction_name_[i] << std::endl;
                         *corridor_distance[i] = 0;
                     }
+                }
+            }
+        }
+    }
+    for(const auto aisle : yolo_result_){
+        if(aisle.Class == "aisle"){
+            double aisle_xmin = 2 * M_PI - (double(aisle.xmin) / width * 2 * M_PI);
+            double aisle_xmax = 2 * M_PI - (double(aisle.xmax) / width * 2 * M_PI);
+            std::swap(aisle_xmin, aisle_xmax);
+            for(int i = 0; i < corridor_direction.size(); i++){
+                if(aisle_xmin < corridor_direction[i] && corridor_direction[i] < aisle_xmax){
+                    std::cout << "Detect an aisle on the " << direction_name_[i] << std::endl;
+                    *corridor_distance[i] = 1;
                 }
             }
         }
