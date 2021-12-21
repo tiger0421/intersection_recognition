@@ -8,10 +8,40 @@ services:
     platform: linux/arm64/v8
     container_name: mecab
     tty: true
-    network_mode: "host"
+    networks:
+      - rosbridge
     volumes:
       - ~/share:/root/share:rw
       - ~/workspace/intersection_recognition:/root/catkin_ws/src/intersection_recognition:rw
+    environment:
+      - ROS_HOSTNAME=mecab
+      - ROS_MASTER_URI=http://ros-vnc:11311
     working_dir: /root
     command: /bin/bash
+
+  ros-vnc:
+    image: ros-vnc:noetic-arm
+    shm_size: '2gb'
+    container_name: ros-vnc
+    working_dir: /home/ubuntu
+    tty: true
+    networks:
+      - rosbridge
+    environment:
+      - USER=ubuntu
+      - PASSWORD=ubuntu
+      - RESOLUTION=1920x1080
+      - ROS_HOSTNAME=ros-vnc
+      - ROS_MASTER_URI=http://ros-vnc:11311
+
+    ports:
+      - "8081:80"
+      - "5911:5900"
+    volumes:
+      - ~/share:/home/ubuntu/share:rw
+    command: /bin/bash
+
+networks:
+  rosbridge:
+    driver: bridge
 
