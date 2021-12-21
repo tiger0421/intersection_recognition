@@ -40,7 +40,7 @@ class intersectionRecognition {
         );
         void actionActive() {};
         void actoinFeedback(const intersection_recognition::BoundingBoxesFeedbackConstPtr &) {};
-        float updateDistanceThresh(std::vector<float> scan);
+        float updateDistanceThresh(std::vector<float> *scan);
         void merge_yolo_result(
             int width, double scan_angle,
             float *distance_left, float *distance_center, float *distance_right, float *distance_back
@@ -97,8 +97,8 @@ void intersectionRecognition::actionYoloCallback(const actionlib::SimpleClientGo
     yolo_result_ = result->yolo_result.bounding_boxes;
 }
 
-float intersectionRecognition::updateDistanceThresh(std::vector<float> scan){
-    return std::accumulate(scan.begin(), scan.end(), 0.0) / scan.size();
+float intersectionRecognition::updateDistanceThresh(std::vector<float> *scan){
+    return std::accumulate(scan->begin(), scan->end(), 0.0) / scan->size();
 }
 
 void intersectionRecognition::merge_yolo_result(
@@ -196,8 +196,8 @@ void intersectionRecognition::scanAndImageCallback(const sensor_msgs::LaserScan:
         y[i] = scan_range * sin(angle);
     }
 
-    for(int i = 1; i < num_scan - 1; i ++) {
-        double angle = atan2(y[i] - y[i-1], x[i] - x[i-1]);
+    for(int i = 1; i+10 < num_scan - 1; i ++) {
+        double angle = atan2(y[i] - y[i+10-1], x[i] - x[i+10-1]);
         while(angle <     0.0) angle += M_PI_2;
         while(angle >= M_PI_2) angle -= M_PI_2;
         angle_bin[static_cast<int>(angle/M_PI*180)] += 1;
@@ -232,7 +232,7 @@ void intersectionRecognition::scanAndImageCallback(const sensor_msgs::LaserScan:
     }
 
 // publish hypothesis of intersection recognition
-    distance_thresh = updateDistanceThresh(scan_cp);
+    distance_thresh = updateDistanceThresh(&scan_cp);
     intersection_recognition::Hypothesis hypothesis;
     if(distance_left > distance_thresh){
         if (scan_left >= 0){

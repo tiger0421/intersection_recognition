@@ -20,7 +20,7 @@ class intersectionRecognition {
         void get_ros_param(void);
         intersection_recognition::Hypothesis generate_publish_variable(bool center_flg, bool back_flg, bool left_flg, bool right_flg,
                                                                         int center_angle, int back_angle, int left_angle, int right_angle);
-        float updateDistanceThresh(std::vector<float> scan);
+        float updateDistanceThresh(std::vector<float> *scan);
         void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
 
     private:
@@ -43,8 +43,8 @@ void intersectionRecognition::get_ros_param(void){
     node_.getParam("extended_toe_finding/robot_frame", robot_frame_);
 }
 
-float intersectionRecognition::updateDistanceThresh(std::vector<float> scan){
-    return std::accumulate(scan.begin(), scan.end(), 0.0) / scan.size();
+float intersectionRecognition::updateDistanceThresh(std::vector<float> *scan){
+    return std::accumulate(scan->begin(), scan->end(), 0.0) / scan->size();
 }
 
 void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
@@ -76,8 +76,8 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
         y[i] = scan_range * sin(angle);
     }
 
-    for(int i = 1; i < num_scan - 1; i ++) {
-        double angle = atan2(y[i] - y[i-1], x[i] - x[i-1]);
+    for(int i = 1; i+10 < num_scan - 1; i ++) {
+        double angle = atan2(y[i] - y[i+10-1], x[i] - x[i+10-1]);
         while(angle <       0.0) angle += M_PI_2;
         while(angle >= M_PI_2) angle -= M_PI_2;
         angle_bin[static_cast<int>(angle/M_PI*180)] += 1;
@@ -99,7 +99,7 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     float distance_back = std::sqrt(x[scan_back]*x[scan_back] + y[scan_back]*y[scan_back]);
 
 // publish hypothesis of intersection recognition
-    distance_thresh = updateDistanceThresh(scan_cp);
+    distance_thresh = updateDistanceThresh(&scan_cp);
     intersection_recognition::Hypothesis hypothesis;
     if(distance_left > distance_thresh){
         if (scan_left >= 0){
