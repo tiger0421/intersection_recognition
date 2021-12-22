@@ -172,7 +172,7 @@ void cmdVelController::loadNextScenario(void){
             //if(action.find("left")){
             if(action == "turn_left"){
                 rotate_rad_for_pub_.data = M_PI_2;
-                std::cout << rotate_rad_for_pub_.data << std::endl;
+                std::cout <<"L" << rotate_rad_for_pub_.data << std::endl;
             }
             //else if(action.find("right")){
             else if(action == "turn_right"){
@@ -182,8 +182,8 @@ void cmdVelController::loadNextScenario(void){
             else{
                 rotate_rad_for_pub_.data = M_PI;
             }
+            rotate_rad_pub_.publish(rotate_rad_for_pub_);
         }
-        rotate_rad_pub_.publish(rotate_rad_for_pub_);
     }
 }
 
@@ -252,7 +252,6 @@ void cmdVelController::hypothesisCallback(const intersection_recognition::Hypoth
             }
             rotate_rad_for_pub_.data = 0.00;
         }
-        rotate_rad_pub_.publish(rotate_rad_for_pub_);
     }
 }
 

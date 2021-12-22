@@ -122,7 +122,6 @@ void intersectionRecognition::merge_yolo_result(
 
     for(const auto obj : yolo_result_){
         if((obj.Class == "door") || obj.Class == "square" || (obj.Class.find("end") != std::string::npos)){
-            std::cout << "check whether end is detected" << std::endl;
             double obj_xmin = 2 * M_PI - (double(obj.xmin) / width * 2 * M_PI);
             double obj_xmax = 2 * M_PI - (double(obj.xmax) / width * 2 * M_PI);
             /*
@@ -152,7 +151,7 @@ void intersectionRecognition::merge_yolo_result(
             for(int i = 0; i < corridor_direction.size(); i++){
                 if(aisle_xmin < corridor_direction[i] && corridor_direction[i] < aisle_xmax){
                     std::cout << "Detect an aisle on the " << direction_name_[i] << std::endl;
-                    *corridor_distance[i] = 1;
+                    *corridor_distance[i] = 10;
                 }
             }
         }

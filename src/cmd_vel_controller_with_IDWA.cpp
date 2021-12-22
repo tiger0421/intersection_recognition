@@ -60,7 +60,7 @@ class cmdVelController {
         bool turn_flg_ = false;
         bool emergency_stop_flg_ = true;
         bool update_path_flg_ = true;
-        double target_yaw_rad_ = 0;
+        double target_yaw_rad_ = M_PI_2;
         double current_yaw_rad_ = 0;
 };
 
@@ -140,17 +140,29 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
             if(!turn_flg_){
                 double rho = 5.0;   // [m]
                 double alpha = target_yaw_rad_ - current_yaw_rad_; // [rad]
+                if(alpha > M_PI){
+                    alpha -= 2 * M_PI;
+                }
+                else if(alpha < -M_PI){
+                    alpha += 2 * M_PI;
+                }
                 // calculate ideal control
                 double vi = k_v * v_max_lim * std::cos(alpha) * std::tanh(rho / k_rho);
                 double wi = k_alpha * alpha + k_v * v_max_lim * std::tanh(rho / k_rho) / rho * std::sin(2.0 * alpha) / 2.0;
 
                 // calculate dynamic window
-                double next_v_max = std::min(v_max_lim, vel_.linear.x + v_acc_max / path_update_freq);
-                double next_v_min = std::max(v_min_lim, vel_.linear.x - v_acc_max / path_update_freq);
-                double next_w_max = std::min(w_max_lim, vel_.angular.z + w_acc_max / path_update_freq);
-                double next_w_min = std::max(w_min_lim, vel_.angular.z - w_acc_max / path_update_freq);
+//                double next_v_max = std::min(v_max_lim, vel_.linear.x + v_acc_max / path_update_freq);
+                double next_v_max = std::max(0.1, std::min(v_max_lim, vel_.linear.x + v_acc_max / path_update_freq));
+//                double next_v_min = std::max(v_min_lim, vel_.linear.x - v_acc_max / path_update_freq);
+                double next_v_min = std::min(-0.1, std::max(v_min_lim, vel_.linear.x - v_acc_max / path_update_freq));
+//                double next_w_max = std::min(w_max_lim, vel_.angular.z + w_acc_max / path_update_freq);
+                double next_w_max = M_PI;
+//                double next_w_min = std::max(w_min_lim, vel_.angular.z - w_acc_max / path_update_freq);
+                double next_w_min = -M_PI;
                 int v_range_size  = std::round((next_v_max - next_v_min) / delta_v) + 1;
                 int w_range_size  = std::round((next_w_max - next_w_min) / delta_w) + 1;
+                std::cout << "v_min " << next_v_min << " v_max " << next_v_max << std::endl;
+                std::cout << "w_min " << next_w_min << " w_max " << next_w_max << std::endl;
 
                 Eigen::VectorXd v_range = Eigen::VectorXd::LinSpaced(v_range_size, next_v_min, next_v_max);
                 Eigen::VectorXd w_range = Eigen::VectorXd::LinSpaced(w_range_size, next_w_min, next_w_max);
@@ -173,23 +185,16 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
                 Eigen::MatrixXd G = lambda1 * G_v + lambda2 * G_w + lambda3 * G_dist;
                 G -= (min_distance.array() < ROBOT_COLLISION_RADIUS).matrix().cast<double>() * 1000.0;
                 bool collision_flg = false;
+                /*
                 if((G.array()<-500.0).count() > G.size() / 2){
+                    std::cout << "collision" << std::endl;
                     collision_flg = true;
                 }
+                */
                 // get a pair of velocity and angle velocity which takes highest score
                 Eigen::MatrixXd::Index maxRow, maxCol;
                 double max_distance = G.maxCoeff(&maxRow, &maxCol);
                 vel_.linear.x = v_range(maxRow);
-                if(collision_flg){
-                    if(vel_.linear.x > v_max_lim * 0.6){
-                        std::cout << "supressed" << std::endl;
-                        vel_.linear.x = v_max_lim * 0.6;
-                    }
-                    else if(vel_.linear.x < v_min_lim * 0.6){
-                        std::cout << "supressed" << std::endl;
-                        vel_.linear.x = v_min_lim * 0.6;
-                    }
-                }
                 vel_.angular.z = w_range(maxCol);
                 std::cout << "alpha(target direction) " << alpha << std::endl;
                 std::cout << "selected v is " << vel_.linear.x << std::endl;

@@ -145,11 +145,11 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
     else{
       if(big_modified_flg_right_){
         big_modified_flg_right_ = false;
-        target_yaw_rad_ += CHANGE_DIRECTION_RAD;
+        target_yaw_rad_ += CHANGE_DIRECTION_RAD * 9 / 10;
       }
       else if(big_modified_flg_left_){
         big_modified_flg_left_ = false;
-        target_yaw_rad_ -= CHANGE_DIRECTION_RAD;
+        target_yaw_rad_ -= CHANGE_DIRECTION_RAD * 9 / 10;
       }
     }
 //    std::cout << "yaw rad is " << target_yaw_rad_ << "  diff is " << target_yaw_rad_ - current_yaw_rad_ << std::endl;
