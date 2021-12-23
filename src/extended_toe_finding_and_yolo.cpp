@@ -121,7 +121,7 @@ void intersectionRecognition::merge_yolo_result(
     corridor_distance[3] = distance_back;
 
     for(const auto obj : yolo_result_){
-        if((obj.Class == "door") || obj.Class == "square" || (obj.Class.find("end") != std::string::npos)){
+        if((obj.Class == "door") || obj.Class == "square" || obj.Class == "step" || (obj.Class.find("end") != std::string::npos)){
             double obj_xmin = 2 * M_PI - (double(obj.xmin) / width * 2 * M_PI);
             double obj_xmax = 2 * M_PI - (double(obj.xmax) / width * 2 * M_PI);
             /*
