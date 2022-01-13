@@ -24,6 +24,8 @@ class intersectionRecognition {
     public:
         intersectionRecognition();
         int SCAN_HZ;
+        float ROBOT_RADIUS;
+        float MIN_WALL_DISTANCE;
         float distance_thresh;
         std::string robot_frame_;
         double door_size_thresh;
@@ -31,16 +33,16 @@ class intersectionRecognition {
         std::vector<intersection_recognition::BoundingBox> yolo_result_;
         void get_ros_param(void);
         intersection_recognition::Hypothesis generate_publish_variable(
-            bool center_flg, bool back_flg, bool left_flg, bool right_flg, 
+            bool center_flg, bool back_flg, bool left_flg, bool right_flg,
             int center_angle, int back_angle, int left_angle, int right_angle
         );
+        void checkRobotCollision(std::vector<double> *x, std::vector<double> *y, std::vector<int> scan_index, std::vector<float*> distance_list);
         void actionYoloCallback(
             const actionlib::SimpleClientGoalState& state,
             const intersection_recognition::BoundingBoxesResultConstPtr& result
         );
         void actionActive() {};
         void actoinFeedback(const intersection_recognition::BoundingBoxesFeedbackConstPtr &) {};
-        float updateDistanceThresh(std::vector<float> *scan);
         void merge_yolo_result(
             int width, double scan_angle,
             float *distance_left, float *distance_center, float *distance_right, float *distance_back
@@ -85,20 +87,40 @@ intersectionRecognition::intersectionRecognition() :
 
 void intersectionRecognition::get_ros_param(void){
     SCAN_HZ = 10;
+    ROBOT_RADIUS = 0.5;
+    MIN_WALL_DISTANCE = 1.0;
     door_size_thresh = 0.5;
     robot_frame_ = "base_link";
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
     node_.getParam("extended_toe_finding/door_size_thresh", door_size_thresh);
     node_.getParam("extended_toe_finding/robot_frame", robot_frame_);
+    node_.getParam("extended_toe_finding/ROBOT_RADIUS", ROBOT_RADIUS);
+    node_.getParam("extended_toe_finding/MIN_WALL_DISTANCE", MIN_WALL_DISTANCE);
+}
+
+void intersectionRecognition::checkRobotCollision(std::vector<double> *x, std::vector<double> *y, std::vector<int> scan_index, std::vector<float*> distance_list){
+    int cnt;
+    int index_low, index_high;
+    int scan_num = x->size();
+    int skip = 10;
+    for(int i = 0; i < scan_index.size(); i++){
+        cnt = 1;
+        do{
+            index_low  = (scan_num + scan_index[i] - skip * cnt) % scan_num;
+            index_high = (scan_num + scan_index[i] + skip * cnt) % scan_num;
+            if(MIN_WALL_DISTANCE > std::hypot(x->at(index_low), y->at(index_low)) ||
+                    MIN_WALL_DISTANCE > std::hypot(x->at(index_high), y->at(index_high))){
+                *distance_list[i] = 0.0;
+                break;
+            }
+            cnt++;
+        }while(skip * cnt >= scan_num / 4 || 2 * ROBOT_RADIUS > std::hypot(x->at(index_low) - x->at(index_high), y->at(index_low) - y->at(index_high)));
+    }
 }
 
 void intersectionRecognition::actionYoloCallback(const actionlib::SimpleClientGoalState& state,
                                                  const intersection_recognition::BoundingBoxesResultConstPtr& result){
     yolo_result_ = result->yolo_result.bounding_boxes;
-}
-
-float intersectionRecognition::updateDistanceThresh(std::vector<float> *scan){
-    return std::accumulate(scan->begin(), scan->end(), 0.0) / scan->size();
 }
 
 void intersectionRecognition::merge_yolo_result(
@@ -231,7 +253,6 @@ void intersectionRecognition::scanAndImageCallback(const sensor_msgs::LaserScan:
     }
 
 // publish hypothesis of intersection recognition
-    distance_thresh = updateDistanceThresh(&scan_cp);
     intersection_recognition::Hypothesis hypothesis;
     if(distance_left > distance_thresh){
         if (scan_left >= 0){

@@ -5,6 +5,8 @@
     <remap from="image_rae"       to="image/mercator"/>
     <param name="SCAN_HZ"         value="10"/>
     <param name="door_size_thresh" value="0.5"/>
+    <param name="ROBOT_RADIUS" value="0.5"/>
+    <param name="MIN_WALL_DISTANCE" value="1"/>
   </node>
   <node name="rviz" pkg="rviz" type="rviz" />
 

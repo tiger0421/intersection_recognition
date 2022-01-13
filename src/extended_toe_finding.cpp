@@ -15,12 +15,14 @@ class intersectionRecognition {
     public:
         intersectionRecognition();
         int SCAN_HZ;
+        float ROBOT_RADIUS;
+        float MIN_WALL_DISTANCE;
         float distance_thresh;
         std::string robot_frame_;
         void get_ros_param(void);
         intersection_recognition::Hypothesis generate_publish_variable(bool center_flg, bool back_flg, bool left_flg, bool right_flg,
                                                                         int center_angle, int back_angle, int left_angle, int right_angle);
-        float updateDistanceThresh(std::vector<float> *scan);
+        void checkRobotCollision(std::vector<double> *x, std::vector<double> *y, std::vector<int> scan_index, std::vector<float*> distance_list);
         void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
 
     private:
@@ -38,13 +40,33 @@ intersectionRecognition::intersectionRecognition(){
 
 void intersectionRecognition::get_ros_param(void){
     SCAN_HZ = 10;
+    ROBOT_RADIUS = 0.5;
+    MIN_WALL_DISTANCE = 1.0;
     robot_frame_ = "base_link";
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
     node_.getParam("extended_toe_finding/robot_frame", robot_frame_);
+    node_.getParam("extended_toe_finding/ROBOT_RADIUS", ROBOT_RADIUS);
+    node_.getParam("extended_toe_finding/MIN_WALL_DISTANCE", MIN_WALL_DISTANCE);
 }
 
-float intersectionRecognition::updateDistanceThresh(std::vector<float> *scan){
-    return std::accumulate(scan->begin(), scan->end(), 0.0) / scan->size();
+void intersectionRecognition::checkRobotCollision(std::vector<double> *x, std::vector<double> *y, std::vector<int> scan_index, std::vector<float*> distance_list){
+    int cnt;
+    int index_low, index_high;
+    int scan_num = x->size();
+    int skip = 10;
+    for(int i = 0; i < scan_index.size(); i++){
+        cnt = 1;
+        do{
+            index_low  = (scan_num + scan_index[i] - skip * cnt) % scan_num;
+            index_high = (scan_num + scan_index[i] + skip * cnt) % scan_num;
+            if(MIN_WALL_DISTANCE > std::hypot(x->at(index_low), y->at(index_low)) ||
+                    MIN_WALL_DISTANCE > std::hypot(x->at(index_high), y->at(index_high))){
+                *distance_list[i] = 0.0;
+                break;
+            }
+            cnt++;
+        }while(skip * cnt >= scan_num / 4 || 2 * ROBOT_RADIUS > std::hypot(x->at(index_low) - x->at(index_high), y->at(index_low) - y->at(index_high)));
+    }
 }
 
 void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
@@ -98,8 +120,15 @@ void intersectionRecognition::scanCallback(const sensor_msgs::LaserScan::ConstPt
     float distance_right = std::sqrt(x[scan_right]*x[scan_right] + y[scan_right]*y[scan_right]);
     float distance_back = std::sqrt(x[scan_back]*x[scan_back] + y[scan_back]*y[scan_back]);
 
+    std::vector<int> scan_index = {scan_left, scan_center, scan_right, scan_back};
+    std::vector<float*> distance_list(4);
+    distance_list[0] = &distance_left;
+    distance_list[1] = &distance_center;
+    distance_list[2] = &distance_right;
+    distance_list[3] = &distance_back;
+    checkRobotCollision(&x, &y, scan_index, distance_list);
+
 // publish hypothesis of intersection recognition
-    distance_thresh = updateDistanceThresh(&scan_cp);
     intersection_recognition::Hypothesis hypothesis;
     if(distance_left > distance_thresh){
         if (scan_left >= 0){

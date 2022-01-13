@@ -1,7 +1,10 @@
 <launch>
   <node name="extended_toe_finding" pkg="intersection_recognition" type="extended_toe_finding" output="screen" >
+    <remap from="scan" to="/diff_bot/scan" />
     <param name="SCAN_HZ" value="10"/>
-    <param name="robot_frame" value="base_link"/>
+    <param name="robot_frame" value="diff_bot/base_link"/>
+    <param name="ROBOT_RADIUS" value="0.5"/>
+    <param name="MIN_WALL_DISTANCE" value="1"/>
   </node>
   <node name="rviz" pkg="rviz" type="rviz" />
 
