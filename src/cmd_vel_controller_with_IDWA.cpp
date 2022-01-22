@@ -5,6 +5,8 @@
 #include "std_msgs/Float32.h"
 #include "geometry_msgs/Twist.h"
 #include "sensor_msgs/Imu.h"
+#include "visualization_msgs/Marker.h"
+#include "visualization_msgs/MarkerArray.h"
 #include "intersection_recognition/Scenario.h"
 #include <unistd.h>
 #include <cmath>
@@ -16,6 +18,7 @@ class cmdVelController {
      public:
         cmdVelController();
         geometry_msgs::Twist vel_;
+        std::string ROBOT_FRAME = "base_link";
         double IMU_HZ = 100.0;
         double robot_control_freq = 10.0;
         double path_update_freq = 2.0;
@@ -37,14 +40,15 @@ class cmdVelController {
         double lambda2 = 3/13;
         double lambda3 = 7/13;
         float reverse_turn = 1.0;
-        float rotate_rad_ = 0;
+        float target_yaw_rad_ = 0;
         void getRosParam(void);
         void imuCallback(const sensor_msgs::Imu::ConstPtr& imu_data);
-        void turnRadCallback(const std_msgs::Float32::ConstPtr& turn_rad);
+        void targetYawRadCallback(const std_msgs::Float32::ConstPtr& target_yaw_rad);
         void emergencyStopFlgCallback(const std_msgs::Bool::ConstPtr& emergency_stop_flg);
         void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
         Eigen::MatrixXd calcDistance(const sensor_msgs::LaserScan::ConstPtr& scan, const Eigen::VectorXd &v_range, const Eigen::VectorXd &w_range);
         Eigen::MatrixXd minMaxNormalize(const Eigen::MatrixXd &mat);
+        void visualize_trajectory(const double v, const double w, const ros::Publisher& pub);
         void timerForCmdVelCallback(const ros::TimerEvent& e_cmd_vel);
         void timerForDWACallback(const ros::TimerEvent& e_dwa);
 
@@ -52,8 +56,9 @@ class cmdVelController {
         ros::NodeHandle node_;
         ros::Publisher cmd_vel_pub_;
         ros::Publisher turn_finish_flg_pub_;
+        ros::Publisher selected_trajectory_pub_;
         ros::Subscriber imu_sub_;
-        ros::Subscriber rotate_rad_sub_;
+        ros::Subscriber target_yaw_rad_sub_;
         ros::Subscriber emergency_stop_flg_sub_;
         ros::Subscriber scan_sub_;
         ros::Timer timer_for_cmd_vel;
@@ -62,16 +67,18 @@ class cmdVelController {
         bool turn_flg_ = false;
         bool emergency_stop_flg_ = true;
         bool update_path_flg_ = true;
-        double target_yaw_rad_ = M_PI_2;
-        double current_yaw_rad_ = 0;
+        double current_yaw_rad_ = 0.0;
+        double rho = 5.0;
+        double alpha = 0.0;
 };
 
 cmdVelController::cmdVelController(){
     cmd_vel_pub_ = node_.advertise<geometry_msgs::Twist>("cmd_vel", 1, false);
     turn_finish_flg_pub_ = node_.advertise<std_msgs::Bool>("turn_finish_flg", 1, false);
+    selected_trajectory_pub_ = node_.advertise<visualization_msgs::Marker>("selected_trajectory", 1);
 
     imu_sub_ = node_.subscribe<sensor_msgs::Imu> ("imu_data", 1, &cmdVelController::imuCallback, this);
-    rotate_rad_sub_ = node_.subscribe<std_msgs::Float32> ("rotate_rad", 1, &cmdVelController::turnRadCallback, this);
+    target_yaw_rad_sub_ = node_.subscribe<std_msgs::Float32> ("target_yaw_rad", 1, &cmdVelController::targetYawRadCallback, this);
     emergency_stop_flg_sub_ = node_.subscribe<std_msgs::Bool> ("emergency_stop_flg", 1, &cmdVelController::emergencyStopFlgCallback, this);
     scan_sub_ = node_.subscribe<sensor_msgs::LaserScan> ("scan", 1, &cmdVelController::scanCallback, this);
 
@@ -85,6 +92,7 @@ void cmdVelController::getRosParam(void){
     node_.getParam("cmd_vel_controller/robot_control_freq", robot_control_freq);
     node_.getParam("cmd_vel_controller/path_update_freq", path_update_freq);
     node_.getParam("cmd_vel_controller/ROBOT_COLLISION_RADIUS", ROBOT_COLLISION_RADIUS);
+    node_.getParam("cmd_vel_controller/ROBOT_FRAME", ROBOT_FRAME);
     node_.getParam("cmd_vel_controller/predict_time", predict_time);
     node_.getParam("cmd_vel_controller/reverse_turn", reverse_turn);
     node_.getParam("cmd_vel_controller/v_max_lim", v_max_lim);
@@ -106,26 +114,24 @@ void cmdVelController::imuCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
     current_yaw_rad_ += imu_data->angular_velocity.z / IMU_HZ;
     if(! emergency_stop_flg_){
         if(turn_flg_){
-        // rotate_rad += imu_data->angular_velocity.z[rad/sec] * (1/IMU_HZ)[sec]
-            rotate_rad_ += imu_data->angular_velocity.z / IMU_HZ;
         // 3.14/180 means 1[rad]
-            std::cout << "rotate rad is " << rotate_rad_ << std::endl;
-            std::cout << "target - current is " <<  -(target_yaw_rad_ - current_yaw_rad_) << std::endl;
-            if(std::abs(rotate_rad_) < 3.14/180){
+            std::cout << "target yaw rad - current yaw rad is " << target_yaw_rad_ - current_yaw_rad_ << std::endl;
+            if(std::abs(target_yaw_rad_ - current_yaw_rad_) < 3.14/180){
                 turn_flg_ = false;
                 std_msgs::Bool turn_finish_flg_for_pub;
                 turn_finish_flg_for_pub.data = true;
                 turn_finish_flg_pub_.publish(turn_finish_flg_for_pub);
-                rotate_rad_ = 0.0;
+                current_yaw_rad_ -= target_yaw_rad_;
+                target_yaw_rad_ = 0.0;
                 vel_.linear.x = 0.0;
                 vel_.angular.z = 0.0;
             }
 
-            if(rotate_rad_ < 0.0){
+            if(target_yaw_rad_ < 0.0){
                 vel_.linear.x = 0;
                 vel_.angular.z = -0.5;
             }
-            else if(rotate_rad_ > 0.0){
+            else if(target_yaw_rad_ > 0.0){
                 vel_.linear.x = 0;
                 vel_.angular.z = 0.5;
             }
@@ -141,8 +147,7 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
     if(! emergency_stop_flg_){
         if(update_path_flg_){
             if(!turn_flg_){
-                double rho = 5.0;   // [m]
-                double alpha = target_yaw_rad_ - current_yaw_rad_; // [rad]
+                alpha = target_yaw_rad_ - current_yaw_rad_; // [rad]
                 if(alpha > M_PI){
                     alpha -= 2 * M_PI;
                 }
@@ -191,10 +196,8 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
                 double max_distance = G.maxCoeff(&maxRow, &maxCol);
                 vel_.linear.x = v_range(maxRow);
                 vel_.angular.z = w_range(maxCol);
-                std::cout << "alpha(target direction) " << alpha << std::endl;
-                std::cout << "selected v is " << vel_.linear.x << std::endl;
-                std::cout << "selected w is " << vel_.angular.z << "\n" << std::endl;
-
+                visualize_trajectory(vel_.linear.x, vel_.angular.z, selected_trajectory_pub_);
+                std::cout << "IDWA: selected v is " << vel_.linear.x << " selected w is " << vel_.angular.z << std::endl;
             }
         }
     }
@@ -251,10 +254,38 @@ Eigen::MatrixXd cmdVelController::minMaxNormalize(const Eigen::MatrixXd &mat){
     return result;
 }
 
-void cmdVelController::turnRadCallback(const std_msgs::Float32::ConstPtr& turn_rad){
-    rotate_rad_ = turn_rad->data * reverse_turn;
-    target_yaw_rad_ -= turn_rad->data * reverse_turn;
-    if(rotate_rad_ == 0.0){
+void cmdVelController::visualize_trajectory(const double v, const double w, const ros::Publisher& pub)
+{
+    visualization_msgs::Marker v_trajectory;
+    v_trajectory.header.frame_id = ROBOT_FRAME;
+    v_trajectory.header.stamp = ros::Time::now();
+    v_trajectory.color.r = 1;
+    v_trajectory.color.g = 0;
+    v_trajectory.color.b = 1;
+    v_trajectory.color.a = 0.8;
+    v_trajectory.ns = pub.getTopic();
+    v_trajectory.type = visualization_msgs::Marker::LINE_STRIP;
+    v_trajectory.action = visualization_msgs::Marker::ADD;
+    v_trajectory.lifetime = ros::Duration();
+    v_trajectory.scale.x = 0.05;
+    geometry_msgs::Pose pose;
+    pose.orientation.w = 1;
+    v_trajectory.pose = pose;
+    geometry_msgs::Point p;
+    p.x = 0.0;
+    p.y = 0.0;
+    for(double t = 0.0; t <= predict_time; t+=dt){
+        p.x += v * std::cos(w) * dt;
+        p.y += v * std::sin(w) * dt;
+        v_trajectory.points.push_back(p);
+    }
+    pub.publish(v_trajectory);
+}
+
+void cmdVelController::targetYawRadCallback(const std_msgs::Float32::ConstPtr& target_yaw_rad){
+    current_yaw_rad_ = 0.0;
+    target_yaw_rad_ = target_yaw_rad->data * reverse_turn;
+    if(target_yaw_rad_ == 0.0){
         turn_flg_ = false;
     }
     else{
