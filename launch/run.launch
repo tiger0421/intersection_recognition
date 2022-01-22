@@ -3,6 +3,8 @@
     <remap from="scan" to="vel_scan" />
     <param name="SCAN_HZ" value="10"/>
     <param name="robot_frame" value="base_link"/>
+    <param name="ROBOT_RADIUS" value="0.5"/>
+    <param name="MIN_WALL_DISTANCE" value="1"/>
   </node>
 
   <node name="scenario_executor" pkg="intersection_recognition" type="scenario_executor" output="screen" />
