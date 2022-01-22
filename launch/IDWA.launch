@@ -4,25 +4,27 @@
     <remap from="cmd_vel" to="diff_bot/cmd_vel" />
     <remap from="scan" to="diff_bot/scan" />
     <remap from="imu_data" to="diff_bot/imu/data" />
-    <param name="IMU_HZ" value="200.0"/>
+    <param name="IMU_HZ" value="180.0"/>
     <param name="robot_control_freq" value="10.0"/>
     <param name="path_update_freq" value="3.0"/>
-    <param name="ROBOT_COLLISION_RADIUS" value="1.0"/>
-    <param name="v_max_lim" value="0.4"/>
-    <param name="v_min_lim" value="-0.4"/>
+    <param name="ROBOT_FRAME" value="diff_bot/base_link"/>
+    <param name="ROBOT_COLLISION_RADIUS" value="0.7"/>
+    <param name="predict_time" value="3.0"/>
+    <param name="v_max_lim" value="0.8"/>
+    <param name="v_min_lim" value="-0.8"/>
     <param name="v_acc_max" value="0.2"/>
-    <param name="delta_v" value="0.02"/>
+    <param name="delta_v" value="0.05"/>
     <param name="w_max_lim" value="0.6"/>
     <param name="w_min_lim" value="-0.6"/>
-    <param name="w_acc_max" value="0.6"/>
-    <param name="delta_w" value="0.1"/>
+    <param name="w_acc_max" value="0.1"/>
+    <param name="delta_w" value="0.05"/>
     <param name="k_rho" value="3.0"/>
     <param name="k_alpha" value="0.59"/>
     <param name="k_v" value="1.0"/>
-    <param name="lambda1" value="1"/>
+    <param name="lambda1" value="4"/>
     <param name="lambda2" value="3"/>
     <param name="lambda3" value="7"/>
-    <param name="reverse_turn" value="-1.0"/>
+    <param name="reverse_turn" value="1.0"/>
   </node>
 
 <!--
