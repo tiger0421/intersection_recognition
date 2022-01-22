@@ -64,7 +64,6 @@ class cmdVelController {
         ros::Timer timer_for_cmd_vel;
         ros::Timer timer_for_dwa;
 
-        bool turn_flg_ = false;
         bool emergency_stop_flg_ = true;
         bool update_path_flg_ = true;
         double current_yaw_rad_ = 0.0;
@@ -95,6 +94,7 @@ void cmdVelController::getRosParam(void){
     node_.getParam("cmd_vel_controller/ROBOT_FRAME", ROBOT_FRAME);
     node_.getParam("cmd_vel_controller/predict_time", predict_time);
     node_.getParam("cmd_vel_controller/reverse_turn", reverse_turn);
+    if(reverse_turn != 1.0) reverse_turn = -1.0;
     node_.getParam("cmd_vel_controller/v_max_lim", v_max_lim);
     node_.getParam("cmd_vel_controller/v_min_lim", v_min_lim);
     node_.getParam("cmd_vel_controller/v_acc_max", v_acc_max);
@@ -112,93 +112,62 @@ void cmdVelController::getRosParam(void){
 
 void cmdVelController::imuCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
     current_yaw_rad_ += imu_data->angular_velocity.z / IMU_HZ;
-    if(! emergency_stop_flg_){
-        if(turn_flg_){
-        // 3.14/180 means 1[rad]
-            std::cout << "target yaw rad - current yaw rad is " << target_yaw_rad_ - current_yaw_rad_ << std::endl;
-            if(std::abs(target_yaw_rad_ - current_yaw_rad_) < 3.14/180){
-                turn_flg_ = false;
-                std_msgs::Bool turn_finish_flg_for_pub;
-                turn_finish_flg_for_pub.data = true;
-                turn_finish_flg_pub_.publish(turn_finish_flg_for_pub);
-                current_yaw_rad_ -= target_yaw_rad_;
-                target_yaw_rad_ = 0.0;
-                vel_.linear.x = 0.0;
-                vel_.angular.z = 0.0;
-            }
-
-            if(target_yaw_rad_ < 0.0){
-                vel_.linear.x = 0;
-                vel_.angular.z = -0.5;
-            }
-            else if(target_yaw_rad_ > 0.0){
-                vel_.linear.x = 0;
-                vel_.angular.z = 0.5;
-            }
-            else{
-                vel_.linear.x = 0;
-                vel_.angular.z = 0.0;
-            }
-        }
-    }
 }
 
 void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan){
     if(! emergency_stop_flg_){
         if(update_path_flg_){
-            if(!turn_flg_){
-                alpha = target_yaw_rad_ - current_yaw_rad_; // [rad]
-                if(alpha > M_PI){
-                    alpha -= 2 * M_PI;
-                }
-                else if(alpha < -M_PI){
-                    alpha += 2 * M_PI;
-                }
-                // calculate ideal control
-                double vi = k_v * v_max_lim * std::cos(alpha) * std::tanh(rho / k_rho);
-                double wi = k_alpha * alpha + k_v * v_max_lim * std::tanh(rho / k_rho) / rho * std::sin(2.0 * alpha) / 2.0;
-
-                // calculate dynamic window
-                double next_v_max = std::min(v_max_lim, vel_.linear.x + v_acc_max / path_update_freq);
-                double next_v_min = std::max(v_min_lim, vel_.linear.x - v_acc_max / path_update_freq);
-                double next_w_max = std::min(w_max_lim, vel_.angular.z + w_acc_max / path_update_freq);
-                double next_w_min = std::max(w_min_lim, vel_.angular.z - w_acc_max / path_update_freq);
-                int v_range_size  = std::round((next_v_max - next_v_min) / delta_v) + 1;
-                int w_range_size  = std::round((next_w_max - next_w_min) / delta_w) + 1;
-
-                Eigen::VectorXd v_range = Eigen::VectorXd::LinSpaced(v_range_size, next_v_min, next_v_max);
-                Eigen::VectorXd w_range = Eigen::VectorXd::LinSpaced(w_range_size, next_w_min, next_w_max);
-
-                // calculate objective function
-                // about velocity
-                Eigen::MatrixXd mat_one = Eigen::MatrixXd::Ones(v_range.size(), w_range.size());
-                Eigen::VectorXd vec_one = Eigen::VectorXd::Ones(v_range.size());
-                Eigen::MatrixXd G_v = (vec_one - ((v_range - vi * vec_one).cwiseAbs() / (2 * v_max_lim))).asDiagonal() * mat_one;
-                G_v = minMaxNormalize(G_v);
-
-                // about angular velocity
-                vec_one = Eigen::VectorXd::Ones(w_range.size());
-                //mat_one = Eigen::MatrixXd::Ones(w_range.size(), v_range.size());
-                Eigen::MatrixXd G_w = mat_one * (vec_one - ((w_range - wi * vec_one).cwiseAbs() / (2 * w_max_lim))).asDiagonal();
-                G_w = minMaxNormalize(G_w);
-
-                // about distance to obstacles
-                Eigen::MatrixXd min_distance = calcDistance(scan, v_range, w_range);
-                Eigen::MatrixXd G_dist = min_distance;
-                G_dist = minMaxNormalize(G_dist);
-
-                // merge variables
-                Eigen::MatrixXd G = lambda1 * G_v + lambda2 * G_w + lambda3 * G_dist;
-                G -= (min_distance.array() < ROBOT_COLLISION_RADIUS).matrix().cast<double>() * 1e6;
-
-                // get a pair of velocity and angle velocity which takes highest score
-                Eigen::MatrixXd::Index maxRow, maxCol;
-                double max_distance = G.maxCoeff(&maxRow, &maxCol);
-                vel_.linear.x = v_range(maxRow);
-                vel_.angular.z = w_range(maxCol);
-                visualize_trajectory(vel_.linear.x, vel_.angular.z, selected_trajectory_pub_);
-                std::cout << "IDWA: selected v is " << vel_.linear.x << " selected w is " << vel_.angular.z << std::endl;
+            alpha = target_yaw_rad_ - current_yaw_rad_; // [rad]
+            if(alpha > M_PI){
+                alpha -= 2 * M_PI;
             }
+            else if(alpha < -M_PI){
+                alpha += 2 * M_PI;
+            }
+            // calculate ideal control
+            double vi = k_v * v_max_lim * std::cos(alpha) * std::tanh(rho / k_rho);
+            double wi = k_alpha * alpha + k_v * v_max_lim * std::tanh(rho / k_rho) / rho * std::sin(2.0 * alpha) / 2.0;
+
+            // calculate dynamic window
+            double next_v_max = std::min(v_max_lim, vel_.linear.x + v_acc_max / path_update_freq);
+            double next_v_min = std::max(v_min_lim, vel_.linear.x - v_acc_max / path_update_freq);
+            double next_w_max = std::min(w_max_lim, vel_.angular.z + w_acc_max / path_update_freq);
+            double next_w_min = std::max(w_min_lim, vel_.angular.z - w_acc_max / path_update_freq);
+            int v_range_size  = std::round((next_v_max - next_v_min) / delta_v) + 1;
+            int w_range_size  = std::round((next_w_max - next_w_min) / delta_w) + 1;
+
+            Eigen::VectorXd v_range = Eigen::VectorXd::LinSpaced(v_range_size, next_v_min, next_v_max);
+            Eigen::VectorXd w_range = Eigen::VectorXd::LinSpaced(w_range_size, next_w_min, next_w_max);
+
+            // calculate objective function
+            // about velocity
+            Eigen::MatrixXd mat_one = Eigen::MatrixXd::Ones(v_range.size(), w_range.size());
+            Eigen::VectorXd vec_one = Eigen::VectorXd::Ones(v_range.size());
+            Eigen::MatrixXd G_v = (vec_one - ((v_range - vi * vec_one).cwiseAbs() / (2 * v_max_lim))).asDiagonal() * mat_one;
+            G_v = minMaxNormalize(G_v);
+
+            // about angular velocity
+            vec_one = Eigen::VectorXd::Ones(w_range.size());
+            //mat_one = Eigen::MatrixXd::Ones(w_range.size(), v_range.size());
+            Eigen::MatrixXd G_w = mat_one * (vec_one - ((w_range - wi * vec_one).cwiseAbs() / (2 * w_max_lim))).asDiagonal();
+            G_w = minMaxNormalize(G_w);
+
+            // about distance to obstacles
+            Eigen::MatrixXd min_distance = calcDistance(scan, v_range, w_range);
+            Eigen::MatrixXd G_dist = min_distance;
+            G_dist = minMaxNormalize(G_dist);
+
+            // merge variables
+            Eigen::MatrixXd G = lambda1 * G_v + lambda2 * G_w + lambda3 * G_dist;
+            G -= (min_distance.array() < ROBOT_COLLISION_RADIUS).matrix().cast<double>() * 1e6;
+
+            // get a pair of velocity and angle velocity which takes highest score
+            Eigen::MatrixXd::Index maxRow, maxCol;
+            double max_distance = G.maxCoeff(&maxRow, &maxCol);
+            vel_.linear.x = v_range(maxRow);
+            vel_.angular.z = w_range(maxCol);
+            visualize_trajectory(vel_.linear.x, vel_.angular.z, selected_trajectory_pub_);
+            std::cout << "IDWA: selected v is " << vel_.linear.x << " selected w is " << vel_.angular.z << std::endl;
         }
     }
 }
@@ -285,12 +254,6 @@ void cmdVelController::visualize_trajectory(const double v, const double w, cons
 void cmdVelController::targetYawRadCallback(const std_msgs::Float32::ConstPtr& target_yaw_rad){
     current_yaw_rad_ = 0.0;
     target_yaw_rad_ = target_yaw_rad->data * reverse_turn;
-    if(target_yaw_rad_ == 0.0){
-        turn_flg_ = false;
-    }
-    else{
-        turn_flg_ = true;
-    }
 }
 
 void cmdVelController::emergencyStopFlgCallback(const std_msgs::Bool::ConstPtr& emergency_stop_flg){
