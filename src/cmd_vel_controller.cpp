@@ -69,6 +69,7 @@ void cmdVelController::getRosParam(void){
     node_.getParam("cmd_vel_controller/IMU_HZ", IMU_HZ);
     node_.getParam("cmd_vel_controller/reverse_turn", reverse_turn);
     node_.getParam("cmd_vel_controller/CHANGE_DIRECTION_DISTANCE_THRESH", CHANGE_DIRECTION_DISTANCE_THRESH);
+    node_.getParam("cmd_vel_controller/CHANGE_DIRECTION_RAD", CHANGE_DIRECTION_RAD);
 }
 
 void cmdVelController::moveCallback(const sensor_msgs::Imu::ConstPtr& imu_data){
@@ -124,8 +125,8 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
             scan_copy[i] = 1000.0;
         }
     }
-    int index_scan_min_right = std::min_element(std::next(scan_copy.begin(), (-3*M_PI_4 - scan->angle_min)/scan->angle_increment), std::next(scan_copy.begin(), (-M_PI/12 - scan->angle_min)/scan->angle_increment)) - scan_copy.begin();
-    int index_scan_min_left = std::min_element(std::next(scan_copy.begin(), (M_PI/12 - scan->angle_min)/scan->angle_increment), std::next(scan_copy.begin(), (3*M_PI_4 - scan->angle_min)/scan->angle_increment)) - scan_copy.begin();
+    int index_scan_min_right = std::min_element(std::next(scan_copy.begin(), (-3*M_PI_4 - scan->angle_min)/scan->angle_increment), std::next(scan_copy.begin(), (-M_PI/18 - scan->angle_min)/scan->angle_increment)) - scan_copy.begin();
+    int index_scan_min_left = std::min_element(std::next(scan_copy.begin(), (M_PI/18 - scan->angle_min)/scan->angle_increment), std::next(scan_copy.begin(), (3*M_PI_4 - scan->angle_min)/scan->angle_increment)) - scan_copy.begin();
     double distance_scan_min_right = scan->ranges[index_scan_min_right];
     double distance_scan_min_left = scan->ranges[index_scan_min_left];
     if(distance_scan_min_right <= CHANGE_DIRECTION_DISTANCE_THRESH && distance_scan_min_right < distance_scan_min_left){
@@ -156,7 +157,7 @@ void cmdVelController::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
 }
 
 void cmdVelController::turnRadCallback(const std_msgs::Float32::ConstPtr& turn_rad){
-    rotate_rad_ = turn_rad->data * reverse_turn;
+    rotate_rad_ += turn_rad->data * reverse_turn;
     target_yaw_rad_ -= turn_rad->data * reverse_turn;
     if(rotate_rad_ == 0.0){
         turn_flg_ = false;

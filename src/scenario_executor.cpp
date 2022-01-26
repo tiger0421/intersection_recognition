@@ -250,7 +250,6 @@ void cmdVelController::hypothesisCallback(const intersection_recognition::Hypoth
                     reach_different_type_cnt_ = 0;
                 }
             }
-            rotate_rad_for_pub_.data = 0.00;
         }
     }
 }

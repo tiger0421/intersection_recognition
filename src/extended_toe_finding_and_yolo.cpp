@@ -90,6 +90,7 @@ void intersectionRecognition::get_ros_param(void){
     ROBOT_RADIUS = 0.5;
     MIN_WALL_DISTANCE = 1.0;
     door_size_thresh = 0.5;
+    distance_thresh = 5.0;
     robot_frame_ = "base_link";
     node_.getParam("extended_toe_finding/SCAN_HZ", SCAN_HZ);
     node_.getParam("extended_toe_finding/door_size_thresh", door_size_thresh);
@@ -158,7 +159,7 @@ void intersectionRecognition::merge_yolo_result(
             if(obj_xmax - obj_xmin > door_size_thresh){
                 for(int i = 0; i < corridor_direction.size(); i++){
                     if(obj_xmin < corridor_direction[i] && corridor_direction[i] < obj_xmax){
-                        std::cout << "Detect a "<< obj.Class <<" on the " << direction_name_[i] << std::endl;
+//                        std::cout << "Detect a "<< obj.Class <<" on the " << direction_name_[i] << std::endl;
                         *corridor_distance[i] = 0;
                     }
                 }
@@ -172,7 +173,7 @@ void intersectionRecognition::merge_yolo_result(
             std::swap(aisle_xmin, aisle_xmax);
             for(int i = 0; i < corridor_direction.size(); i++){
                 if(aisle_xmin < corridor_direction[i] && corridor_direction[i] < aisle_xmax){
-                    std::cout << "Detect an aisle on the " << direction_name_[i] << std::endl;
+//                    std::cout << "Detect an aisle on the " << direction_name_[i] << std::endl;
                     *corridor_distance[i] = 10;
                 }
             }

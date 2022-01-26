@@ -13,9 +13,12 @@
   <node name="scenario_executor" pkg="intersection_recognition" type="scenario_executor" output="screen" />
 
   <node name="cmd_vel_controller" pkg="intersection_recognition" type="cmd_vel_controller" output="screen" >
+    <remap from="hokuyo_scan" to="merged_scan" />
     <remap from="cmd_vel" to="icart_mini/cmd_vel" />
     <param name="IMU_HZ" value="100.0"/>
     <param name="reverse_turn" value="1.0"/>
+    <param name="CHANGE_DIRECTION_DISTANCE_THRESH" value="0.6"/>
+    <param name="CHANGE_DIRECTION_RAD" value="0.35"/>
   </node>
 
 <!--
